@@ -317,8 +317,7 @@ mod tests {
             vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
         ];
 
-        let mut puz: Puzzle = Puzzle::new();
-        let res = puz.set_initial(example).solve();
+        let res = Puzzle::new().set_initial(example).solve();
         assert_eq!(res.len(), 1);
         assert_eq!(res[0], expected);
     }
@@ -361,8 +360,7 @@ mod tests {
             vec![1, 5, 4, 9, 3, 8, 6, 2, 7],
         ];
 
-        let mut puz: Puzzle = Puzzle::new();
-        let res = puz.set_initial(example).solve();
+        let res = Puzzle::new().set_initial(example).solve();
         assert_eq!(res.len(), 2);
         if res[0] == expected1 {
             assert_eq!(res[0], expected1);
