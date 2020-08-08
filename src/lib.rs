@@ -54,13 +54,13 @@ impl Cell {
 }
 
 // Contains a row dominant 1-D vector for all the cells in the puzzle
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Puzzle {
     cells: Vec<Cell>,
 }
 
 impl Puzzle {
-    fn new() -> Puzzle {
+    pub fn new() -> Puzzle {
         Puzzle {
             cells: vec![Cell::default(); NUM_CELLS],
         }
@@ -71,6 +71,7 @@ impl Puzzle {
         row * MAX_NUM + col
     }
 
+    // covert 1-D coordinate to 2-D
     fn get_row(index: usize) -> usize {
         index / MAX_NUM
     }
@@ -78,9 +79,8 @@ impl Puzzle {
         index % MAX_NUM
     }
 
-    // This is configured to solve a Leet-Code problem, which used a 2-D vector of chars for input,
-    // that uses the '.' char to designate non-fixed cells.
-    fn set_initial(&mut self, initial: Vec<Vec<usize>>) -> &mut Puzzle {
+    /// Sets a new puzzle using 2-D vector parameter
+    pub fn set_initial(&mut self, initial: Vec<Vec<usize>>) -> &mut Puzzle {
         for (row, row_vec) in initial.iter().enumerate() {
             for (col, cell) in row_vec.iter().enumerate() {
                 if *cell == 0 {
@@ -90,7 +90,6 @@ impl Puzzle {
                 }
             }
         }
-
         self
     }
 
@@ -159,41 +158,133 @@ impl Puzzle {
             && self.cells[cell].num() != 0
     }
 
-    pub fn solve(&mut self) -> Vec<Vec<usize>> {
-        let mut position: usize = 0;
-        loop {
-
-            // check for solved puzzle
-            if position == NUM_CELLS - 1 && self.valid(position) {
-                let mut to_return: Vec<Vec<usize>> = vec![vec![0; MAX_NUM]; MAX_NUM];
-                for (i, cell) in self.cells.iter().enumerate() {
-                    to_return[Puzzle::get_row(i)][Puzzle::get_col(i)] = cell.num();
+    /// Solves the Sudoku puzzle.  Returns a vector of 2-D vectors.  Each 2-D vector represents a
+    /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
+    pub fn solve(&mut self) -> Vec<Vec<Vec<usize>>> {
+        fn move_cursor_left(puz: &mut Puzzle, cursor: usize) -> Option<usize> {
+            let mut cur = cursor;
+            loop {
+                puz.cells[cur].reset();
+                cur = match cur.checked_sub(1) {
+                    Some(v) => v,
+                    // At beginning of puzzle
+                    None => return None,
+                };
+                if !(puz.cells[cur].fixed() || puz.cells[cur].num() == MAX_NUM) {
+                    break;
                 }
-                return to_return;
             }
+            Some(cur)
+        }
 
-            // Increase the cell value by one
-            if self.cells[position].num() < MAX_NUM {
-                self.cells[position].inc();
+        fn move_cursor_right(puz: &Puzzle, cursor: usize) -> Option<usize> {
+            let mut cur = cursor;
+            loop {
+                match cur + 1 {
+                    v if v >= NUM_CELLS => return None,
+                    v => cur = v,
+                }
+                if !(puz.cells[cur].fixed()) {
+                    break;
+                }
             }
+            Some(cur)
+        }
+
+        let mut position: usize = 0;
+        let mut to_return: Vec<Vec<Vec<usize>>> = Vec::new();
+
+        // move position to non-fixed point
+        if self.cells[position].fixed() {
+            position = match move_cursor_right(self, position) {
+                Some(v) => v,
+                None => MAX_NUM - 1,
+            };
+        }
+
+        // set backmarker to the last cell
+        let mut back_marker: usize = NUM_CELLS - 1;
+
+        // This loop increments, checks, determine if solved, and adjust the backmarker to check
+        // for additional solutions.
+        'solving: loop {
+            // check valid
 
             if self.valid(position) {
-                position += 1;
-            } else {
-                // Back tracks to previous cell
-                while self.cells[position].num() == MAX_NUM || self.cells[position].fixed() {
-                    self.cells[position].reset();
-                    // Checked_sub is used to help determine if puzzle is unsolvable.
-                    // Position is an unsigned integer, therefore if underflow occurs, that means all possible
-                    // solutions were checked and the puzzle is unsolvable.
-                    position = match position.checked_sub(1) {
-                        Some(v) => v,
-                        // This is met if the puzzle is unsolvable
-                        None => panic!("Unsolvable"),
+                // if valid, check solved
+                if position == NUM_CELLS - 1 {
+                    //dbg!(usize::from(position), back_marker);
+                    // Covert self to 2-D vector to add to solution vector
+                    let mut solution: Vec<Vec<usize>> = vec![vec![0; MAX_NUM]; MAX_NUM];
+                    for (i, cell) in self.cells.iter().enumerate() {
+                        solution[Puzzle::get_row(i)][Puzzle::get_col(i)] = cell.num();
                     }
+                    to_return.push(solution);
+
+                    // reset all after backmarker
+                    while position > back_marker {
+                        // reset starting position, but not the backmarker
+                        self.cells[position].reset();
+                        position = match move_cursor_left(self, position) {
+                            Some(v) => v,
+                            None => return to_return,
+                        }
+                    }
+                    assert_eq!(position, back_marker);
+                    //increment the position
+
+                    if !self.cells[position].inc() {
+                        position = match move_cursor_left(self, position) {
+                            Some(v) => v,
+                            // No other solutions avail
+                            None => break 'solving,
+                        };
+                        back_marker = position;
+                        self.cells[position].inc();
+                    }
+                } else {
+                    // if valid but not solved,
+                    // move to next non-fixed position
+                    match move_cursor_right(self, position) {
+                        Some(v) => position = v,
+                        // if last cell is fixed, this will check if the puzzle is valid.
+                        None => {
+                            position = NUM_CELLS - 1;
+                            continue 'solving;
+                        }
+                    };
+
+                    //increment the position
+                    self.cells[position].inc();
+                }
+            } else {
+                // if not valid
+                // if not at max
+                if self.cells[position].num() < MAX_NUM {
+                    //increment the position
+                    self.cells[position].inc();
+                } else {
+                    // else reset position
+
+                    // move position to next previous non-fixed
+                    'move_left: loop {
+                        self.cells[position].reset();
+                        position = match move_cursor_left(self, position) {
+                            Some(v) => v,
+                            // No more valid solutions
+                            None => break 'solving,
+                        };
+
+                        if !(self.cells[position].fixed() || self.cells[position].num() == MAX_NUM)
+                        {
+                            break 'move_left;
+                        }
+                    }
+                    self.cells[position].inc();
                 }
             }
         }
+        to_return
     }
 }
 
@@ -228,7 +319,95 @@ mod tests {
 
         let mut puz: Puzzle = Puzzle::new();
         let res = puz.set_initial(example).solve();
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0], expected);
+    }
 
-        assert_eq!(res, expected);
+    #[test]
+    fn two_solutions() {
+        let example: Vec<Vec<usize>> = vec![
+            vec![2, 9, 5, 7, 4, 3, 8, 6, 1],
+            vec![4, 3, 1, 8, 6, 5, 9, 0, 0],
+            vec![8, 7, 6, 1, 9, 2, 5, 4, 3],
+            vec![3, 8, 7, 4, 5, 9, 2, 1, 6],
+            vec![6, 1, 2, 3, 8, 7, 4, 9, 5],
+            vec![5, 4, 9, 2, 1, 6, 7, 3, 8],
+            vec![7, 6, 3, 5, 2, 4, 1, 8, 9],
+            vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
+            vec![1, 5, 4, 9, 3, 8, 6, 0, 0],
+        ];
+
+        let expected1: Vec<Vec<usize>> = vec![
+            vec![2, 9, 5, 7, 4, 3, 8, 6, 1],
+            vec![4, 3, 1, 8, 6, 5, 9, 2, 7],
+            vec![8, 7, 6, 1, 9, 2, 5, 4, 3],
+            vec![3, 8, 7, 4, 5, 9, 2, 1, 6],
+            vec![6, 1, 2, 3, 8, 7, 4, 9, 5],
+            vec![5, 4, 9, 2, 1, 6, 7, 3, 8],
+            vec![7, 6, 3, 5, 2, 4, 1, 8, 9],
+            vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
+            vec![1, 5, 4, 9, 3, 8, 6, 7, 2],
+        ];
+
+        let expected2: Vec<Vec<usize>> = vec![
+            vec![2, 9, 5, 7, 4, 3, 8, 6, 1],
+            vec![4, 3, 1, 8, 6, 5, 9, 7, 2],
+            vec![8, 7, 6, 1, 9, 2, 5, 4, 3],
+            vec![3, 8, 7, 4, 5, 9, 2, 1, 6],
+            vec![6, 1, 2, 3, 8, 7, 4, 9, 5],
+            vec![5, 4, 9, 2, 1, 6, 7, 3, 8],
+            vec![7, 6, 3, 5, 2, 4, 1, 8, 9],
+            vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
+            vec![1, 5, 4, 9, 3, 8, 6, 2, 7],
+        ];
+
+        let mut puz: Puzzle = Puzzle::new();
+        let res = puz.set_initial(example).solve();
+        assert_eq!(res.len(), 2);
+        if res[0] == expected1 {
+            assert_eq!(res[0], expected1);
+            assert_eq!(res[1], expected2);
+        } else {
+            assert_eq!(res[0], expected2);
+            assert_eq!(res[1], expected1);
+        }
+    }
+
+    #[test]
+    fn oh_no_test() {
+        let example: Vec<Vec<usize>> = vec![
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vec![6, 7, 2, 1, 9, 5, 3, 4, 8],
+            vec![1, 9, 8, 3, 4, 2, 5, 6, 7],
+            vec![8, 5, 9, 7, 6, 1, 4, 2, 3],
+            vec![4, 2, 6, 8, 5, 3, 7, 9, 1],
+            vec![7, 1, 3, 9, 2, 4, 8, 5, 6],
+            vec![9, 6, 1, 5, 3, 7, 2, 8, 4],
+            vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+
+        let mut puz: Puzzle = Puzzle::new();
+        let res = puz.set_initial(example).solve();
+
+        assert!(res.len() == 2);
+
+        let example: Vec<Vec<usize>> = vec![
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vec![1, 9, 8, 3, 4, 2, 5, 6, 7],
+            vec![8, 5, 9, 7, 6, 1, 4, 2, 3],
+            vec![4, 2, 6, 8, 5, 3, 7, 9, 1],
+            vec![7, 1, 3, 9, 2, 4, 8, 5, 6],
+            vec![9, 6, 1, 5, 3, 7, 2, 8, 4],
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+
+        let mut puz: Puzzle = Puzzle::new();
+        let res = puz.set_initial(example).solve();
+
+        // used https://www.thonky.com/sudoku/solution-count to verify solution count
+        assert!(res.len() == 192);
     }
 }
