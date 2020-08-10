@@ -1,12 +1,15 @@
+use std::collections::HashSet;
+
 static BOX_DIMEN: usize = 3;
 static MAX_NUM: usize = BOX_DIMEN * BOX_DIMEN;
 static NUM_CELLS: usize = MAX_NUM * MAX_NUM;
 
 // The Cell struct contains the number, boolean if it is fixed, and functions to incremement
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive( Clone, PartialEq, Debug)]
 struct Cell {
     num: usize,
     fixed: bool,
+    penciled: HashSet<usize>,
 }
 
 impl Default for Cell {
@@ -14,6 +17,7 @@ impl Default for Cell {
         Cell {
             num: 0,
             fixed: false,
+            penciled: HashSet::new(),
         }
     }
 }
@@ -47,12 +51,56 @@ impl Cell {
     }
 
     // used in initial setting of puzzle and fixed numbers
-    fn set(&mut self, val: usize) {
+    fn set_cell_initial(&mut self, val: usize) {
         self.num = val;
         self.fixed = true;
     }
+
+    fn set (&mut self, val: usize) {
+        self.num = val;
+    }
+
+    fn is_possible (&self, val: usize) -> bool {
+        self.penciled.contains(val)
+    }
+
+    fn mark_possible (&mut self, val: usize) {
+        self.penciled.insert(val);
+    }
+
+    fn remove_possible (&mut self, val: usize) {
+        self.penciled.remove(&val);
+    }
 }
 
+struct CellIter<'a> {
+    i_penciled: &'a HashSet<usize>,
+    index: usize,
+}
+
+impl <'a> IntoIterator for &'a Cell{
+    type Item = usize;
+    type IntoIter = CellIter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        CellIter {
+            i_penciled: &self.penciled,
+            index: 0,
+        }
+    }
+}
+
+impl <'a> Iterator for CellIter<'a> {
+    type Item = usize;
+    fn next (&mut self) -> Option<usize> {
+        let res = match self.i_penciled.get(self.index){
+            None => None,
+            Some(v) => Some(*v),
+        };
+        self.index += 1;
+        res
+    }
+}
 // Contains a row dominant 1-D vector for all the cells in the puzzle
 #[derive(Clone, Debug, Default)]
 pub struct Puzzle {
@@ -79,6 +127,13 @@ impl Puzzle {
         index % MAX_NUM
     }
 
+    // Assumes that the puzzle has already been initially set
+    pub fn set_penciled (&mut self) -> &mut Puzzle {
+
+        let r_iter = self.cells.iter_mut();
+
+    }
+
     /// Sets a new puzzle using 2-D vector parameter
     pub fn set_initial(&mut self, initial: Vec<Vec<usize>>) -> &mut Puzzle {
         for (row, row_vec) in initial.iter().enumerate() {
@@ -86,7 +141,7 @@ impl Puzzle {
                 if *cell == 0 {
                     continue;
                 } else {
-                    self.cells[Puzzle::get_cell(row, col)].set(*cell);
+                    self.cells[Puzzle::get_cell(row, col)].set_cell_initial(*cell);
                 }
             }
         }
@@ -160,7 +215,7 @@ impl Puzzle {
 
     /// Solves the Sudoku puzzle.  Returns a vector of 2-D vectors.  Each 2-D vector represents a
     /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
-    pub fn solve(&mut self) -> Vec<Vec<Vec<usize>>> {
+    pub fn brute_force_solve(&mut self) -> Vec<Vec<Vec<usize>>> {
         fn move_cursor_left(puz: &mut Puzzle, cursor: usize) -> Option<usize> {
             let mut cur = cursor;
             loop {
@@ -317,7 +372,7 @@ mod tests {
             vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
         ];
 
-        let res = Puzzle::new().set_initial(example).solve();
+        let res = Puzzle::new().set_initial(example).brute_force_solve();
         assert_eq!(res.len(), 1);
         assert_eq!(res[0], expected);
     }
@@ -360,7 +415,7 @@ mod tests {
             vec![1, 5, 4, 9, 3, 8, 6, 2, 7],
         ];
 
-        let res = Puzzle::new().set_initial(example).solve();
+        let res = Puzzle::new().set_initial(example).brute_force_solve();
         assert_eq!(res.len(), 2);
         if res[0] == expected1 {
             assert_eq!(res[0], expected1);
@@ -386,7 +441,7 @@ mod tests {
         ];
 
         let mut puz: Puzzle = Puzzle::new();
-        let res = puz.set_initial(example).solve();
+        let res = puz.set_initial(example).brute_force_solve();
 
         assert!(res.len() == 2);
 
@@ -403,7 +458,7 @@ mod tests {
         ];
 
         let mut puz: Puzzle = Puzzle::new();
-        let res = puz.set_initial(example).solve();
+        let res = puz.set_initial(example).brute_force_solve();
 
         // used https://www.thonky.com/sudoku/solution-count to verify solution count
         assert!(res.len() == 192);
