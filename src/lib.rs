@@ -1,4 +1,9 @@
 use std::collections::HashSet;
+use std::slice::Iter;
+use std::borrow::Borrow;
+use std::iter::Skip;
+use std::ops::Deref;
+
 
 static BOX_DIMEN: usize = 3;
 static MAX_NUM: usize = BOX_DIMEN * BOX_DIMEN;
@@ -6,7 +11,7 @@ static NUM_CELLS: usize = MAX_NUM * MAX_NUM;
 
 // The Cell struct contains the number, boolean if it is fixed, and functions to incremement
 #[derive( Clone, PartialEq, Debug)]
-struct Cell {
+pub struct Cell {
     num: usize,
     fixed: bool,
     penciled: HashSet<usize>,
@@ -61,7 +66,7 @@ impl Cell {
     }
 
     fn is_possible (&self, val: usize) -> bool {
-        self.penciled.contains(val)
+        self.penciled.contains(&val)
     }
 
     fn mark_possible (&mut self, val: usize) {
@@ -73,7 +78,7 @@ impl Cell {
     }
 }
 
-struct CellIter<'a> {
+pub struct CellIter<'a> {
     i_penciled: &'a HashSet<usize>,
     index: usize,
 }
@@ -93,7 +98,7 @@ impl <'a> IntoIterator for &'a Cell{
 impl <'a> Iterator for CellIter<'a> {
     type Item = usize;
     fn next (&mut self) -> Option<usize> {
-        let res = match self.i_penciled.get(self.index){
+        let res = match self.i_penciled.get(&self.index){
             None => None,
             Some(v) => Some(*v),
         };
@@ -107,6 +112,31 @@ pub struct Puzzle {
     cells: Vec<Cell>,
 }
 
+pub struct BoxIter <'a>{
+    it: Skip<Iter<'a, Cell>>,
+    index: usize,
+}
+
+impl <'a>Iterator for BoxIter<'a> {
+    type Item = &'a Cell;
+    fn next(&mut self) -> Option<&'a Cell> {
+
+        if self.index == 0 {
+            self.index += 1;
+            return self.it.next();
+        }
+        if self.index == 3 {
+            dbg!(self.index);
+        }
+        let ret = match self.index {
+            v if v >= MAX_NUM => None,
+            v if v % BOX_DIMEN == 0 => self.it.nth(MAX_NUM - BOX_DIMEN),
+            _ => self.it.next(),
+        };
+        self.index += 1;
+        ret
+    }
+}
 impl Puzzle {
     pub fn new() -> Puzzle {
         Puzzle {
@@ -127,9 +157,41 @@ impl Puzzle {
         index % MAX_NUM
     }
 
+    fn get_box(index: usize) -> usize {
+        let (r, c) = (Puzzle::get_row (index), Puzzle::get_col(index));
+        (r / BOX_DIMEN) * BOX_DIMEN + (c / BOX_DIMEN)
+    }
+
+    fn get_row_slice (&self, index: usize) -> &[Cell] {
+        let row = Puzzle::get_row(index);
+        &self.cells[(row * MAX_NUM)..(row * MAX_NUM + MAX_NUM - 1)]
+    }
+
+
+    fn row_iter(&mut self, index: usize) -> Iter<Cell> {
+        let row = Puzzle::get_row(index);
+        self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter()
+    }
+
+    fn col_iter(&mut self, index: usize) -> std::iter::StepBy<Skip<Iter<Cell>>> {
+        let col = Puzzle::get_col(index);
+        self.cells.iter().skip(col).step_by(MAX_NUM)
+    }
+
+    fn box_iter(&mut self, index: usize) -> BoxIter {
+        let box_num = Puzzle::get_box(index);
+        let start_row = (box_num / BOX_DIMEN) * BOX_DIMEN;
+        let start_col = (box_num % BOX_DIMEN) * BOX_DIMEN;
+
+        BoxIter {
+            it: self.cells.iter().skip(start_row * MAX_NUM + start_col),
+            index: 0,
+        }
+    }
+
     // Assumes that the puzzle has already been initially set
     pub fn set_penciled (&mut self) -> &mut Puzzle {
-
+        todo!();
         let r_iter = self.cells.iter_mut();
 
     }
@@ -346,9 +408,9 @@ impl Puzzle {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn sudoku_test() {
-        let example: Vec<Vec<usize>> = vec![
+
+    fn get_example () -> Vec<Vec<usize>> {
+        vec![
             vec![5, 3, 0, 0, 7, 0, 0, 0, 0],
             vec![6, 0, 0, 1, 9, 5, 0, 0, 0],
             vec![0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -358,7 +420,97 @@ mod tests {
             vec![0, 6, 0, 0, 0, 0, 2, 8, 0],
             vec![0, 0, 0, 4, 1, 9, 0, 0, 5],
             vec![0, 0, 0, 0, 8, 0, 0, 7, 9],
-        ];
+        ]
+    }
+
+    #[test]
+    fn get_box_test () {
+        assert_eq!(Puzzle::get_box(10), 0);
+        assert_eq!(Puzzle::get_box(26), 2);
+        assert_eq!(Puzzle::get_box(30), 4);
+        assert_eq!(Puzzle::get_box(80), 8);
+
+
+    }
+    #[test]
+    fn row_iter_test (){
+        let example = get_example();
+
+        let example_copy = example.clone();
+
+        let mut res = Puzzle::new();
+        res.set_initial(example);
+        let mut iter = res.row_iter(0);
+        for (i, (exp, res)) in example_copy[0].iter().zip(iter).enumerate() {
+            assert_eq!(res.num(), *exp);
+        }
+
+        let mut iter = res.row_iter(72);
+
+        iter.nth(6);
+
+        assert_eq!(iter.next().unwrap().num(), 7);
+        assert_eq!(iter.next().unwrap().num(), 9);
+        assert!(iter.next().is_none());
+
+    }
+    #[test]
+    fn col_iter_test () {
+        let example = get_example();
+        let example_copy = example.clone();
+
+        let mut res = Puzzle::new();
+        res.set_initial(example);
+        let mut iter = res.col_iter(0);
+        let expected = [5, 6, 0, 8, 4, 7, 0, 0, 0];
+        for (i, (exp, res)) in expected.iter().zip(iter).enumerate() {
+            // dbg!(i, res.num(), *exp);
+            assert_eq!(res.num(), *exp);
+        }
+
+        let mut iter = res.col_iter(17);
+
+        iter.nth(6);
+
+        assert_eq!(iter.next().unwrap().num(), 5);
+        assert_eq!(iter.next().unwrap().num(), 9);
+        assert!(iter.next().is_none());
+    }
+
+    #[test]
+    fn box_iter_test () {
+        let example = get_example();
+        let example_copy = example.clone();
+
+
+        let mut res = Puzzle::new();
+        res.set_initial(example);
+
+        let mut iter = res.box_iter(60);
+        let expected = [2, 8, 0, 0, 0, 5, 0, 7, 9];
+        for (i, (exp, res)) in expected.iter().zip(iter).enumerate() {
+            assert_eq!(res.num(), *exp);
+        }
+        let mut iter = res.box_iter(0);
+        let expected = [5, 3, 0, 6, 0, 0, 0, 9, 8];
+        for (i, (exp, res)) in expected.iter().zip(iter).enumerate() {
+            assert_eq!(res.num(), *exp);
+        }
+
+        let mut iter = res.col_iter(17);
+
+        iter.nth(6);
+
+        assert_eq!(iter.next().unwrap().num(), 5);
+        assert_eq!(iter.next().unwrap().num(), 9);
+        assert!(iter.next().is_none());
+    }
+
+
+
+    #[test]
+    fn sudoku_test() {
+        let example = get_example();
 
         let expected: Vec<Vec<usize>> = vec![
             vec![5, 3, 4, 6, 7, 8, 9, 1, 2],
