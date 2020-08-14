@@ -1,20 +1,27 @@
-use std::collections::HashSet;
-use std::slice::Iter;
 use std::borrow::Borrow;
+use std::collections::HashSet;
 use std::iter::Skip;
 use std::ops::Deref;
-
+use std::slice::Iter;
 
 static BOX_DIMEN: usize = 3;
 static MAX_NUM: usize = BOX_DIMEN * BOX_DIMEN;
 static NUM_CELLS: usize = MAX_NUM * MAX_NUM;
 
+/// Enum to determine if pencil marks are made by user (for game usage)
+/// or by the system (for solving algorithms)
+#[derive(Copy, Clone, ParitalEq, Debug)]
+enum Pencil {
+    User(usize),
+    System(usize),
+}
+
 // The Cell struct contains the number, boolean if it is fixed, and functions to incremement
-#[derive( Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Cell {
     num: usize,
     fixed: bool,
-    penciled: HashSet<usize>,
+    penciled: HashSet<Pencil>,
 }
 
 impl Default for Cell {
@@ -36,7 +43,7 @@ impl Cell {
         self.num
     }
 
-    // Increment cell.  Returns boolean.  True is incremented, false if already at max value or fixed value.
+    /// Increment cell.  Returns boolean.  True is incremented, false if already at max value or fixed value.
     fn inc(&mut self) -> bool {
         if self.fixed {
             return false;
@@ -49,32 +56,33 @@ impl Cell {
         }
     }
 
+    /// Resets non-fixed cells to zero.
     fn reset(&mut self) {
         if !self.fixed {
             self.num = 0;
         }
     }
 
-    // used in initial setting of puzzle and fixed numbers
-    fn set_cell_initial(&mut self, val: usize) {
+    /// used in initial setting of puzzle and fixed numbers
+    pub fn set_cell_initial(&mut self, val: usize) {
         self.num = val;
         self.fixed = true;
     }
 
-    fn set (&mut self, val: usize) {
+    fn set(&mut self, val: usize) {
         self.num = val;
     }
 
-    fn is_possible (&self, val: usize) -> bool {
+    fn is_possible(&self, val: Pencil) -> bool {
         self.penciled.contains(&val)
     }
 
-    fn mark_possible (&mut self, val: usize) {
-        self.penciled.insert(val);
+    fn mark_possible(&mut self, val: Pencil) -> bool{
+        self.penciled.insert(vel)
     }
 
-    fn remove_possible (&mut self, val: usize) {
-        self.penciled.remove(&val);
+    fn remove_possible(&mut self, val: Pencil) -> bool{
+        self.penciled.remove(&val)
     }
 }
 
@@ -83,7 +91,7 @@ pub struct CellIter<'a> {
     index: usize,
 }
 
-impl <'a> IntoIterator for &'a Cell{
+impl<'a> IntoIterator for &'a Cell {
     type Item = usize;
     type IntoIter = CellIter<'a>;
 
@@ -95,10 +103,10 @@ impl <'a> IntoIterator for &'a Cell{
     }
 }
 
-impl <'a> Iterator for CellIter<'a> {
+impl<'a> Iterator for CellIter<'a> {
     type Item = usize;
-    fn next (&mut self) -> Option<usize> {
-        let res = match self.i_penciled.get(&self.index){
+    fn next(&mut self) -> Option<usize> {
+        let res = match self.i_penciled.get(&self.index) {
             None => None,
             Some(v) => Some(*v),
         };
@@ -106,35 +114,32 @@ impl <'a> Iterator for CellIter<'a> {
         res
     }
 }
-// Contains a row dominant 1-D vector for all the cells in the puzzle
+/// Contains a row dominant 1-D vector for all the cells in the puzzle
 #[derive(Clone, Debug, Default)]
 pub struct Puzzle {
     cells: Vec<Cell>,
 }
 
-pub struct BoxIter <'a>{
+pub struct BoxIter<'a> {
     it: Skip<Iter<'a, Cell>>,
     index: usize,
 }
 
-impl <'a>Iterator for BoxIter<'a> {
+impl<'a> Iterator for BoxIter<'a> {
     type Item = &'a Cell;
     fn next(&mut self) -> Option<&'a Cell> {
-
-        if self.index == 0 {
-            self.index += 1;
+        self.index += 1;
+        // This check prevents skipping to next row in the upcoming match statement
+        if self.index == 1 {
             return self.it.next();
         }
-        if self.index == 3 {
-            dbg!(self.index);
-        }
-        let ret = match self.index {
-            v if v >= MAX_NUM => None,
-            v if v % BOX_DIMEN == 0 => self.it.nth(MAX_NUM - BOX_DIMEN),
+
+        match self.index {
+            v if v > MAX_NUM => None,
+            v if v % BOX_DIMEN == 1 => self.it.nth(MAX_NUM - BOX_DIMEN),
             _ => self.it.next(),
-        };
-        self.index += 1;
-        ret
+        }
+
     }
 }
 impl Puzzle {
@@ -158,27 +163,21 @@ impl Puzzle {
     }
 
     fn get_box(index: usize) -> usize {
-        let (r, c) = (Puzzle::get_row (index), Puzzle::get_col(index));
+        let (r, c) = (Puzzle::get_row(index), Puzzle::get_col(index));
         (r / BOX_DIMEN) * BOX_DIMEN + (c / BOX_DIMEN)
     }
 
-    fn get_row_slice (&self, index: usize) -> &[Cell] {
-        let row = Puzzle::get_row(index);
-        &self.cells[(row * MAX_NUM)..(row * MAX_NUM + MAX_NUM - 1)]
-    }
-
-
-    fn row_iter(&mut self, index: usize) -> Iter<Cell> {
+    fn row_iter(&self, index: usize) -> Iter<Cell> {
         let row = Puzzle::get_row(index);
         self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter()
     }
 
-    fn col_iter(&mut self, index: usize) -> std::iter::StepBy<Skip<Iter<Cell>>> {
+    fn col_iter(&self, index: usize) -> std::iter::StepBy<Skip<Iter<Cell>>> {
         let col = Puzzle::get_col(index);
         self.cells.iter().skip(col).step_by(MAX_NUM)
     }
 
-    fn box_iter(&mut self, index: usize) -> BoxIter {
+    fn box_iter(&self, index: usize) -> BoxIter {
         let box_num = Puzzle::get_box(index);
         let start_row = (box_num / BOX_DIMEN) * BOX_DIMEN;
         let start_col = (box_num % BOX_DIMEN) * BOX_DIMEN;
@@ -190,14 +189,13 @@ impl Puzzle {
     }
 
     // Assumes that the puzzle has already been initially set
-    pub fn set_penciled (&mut self) -> &mut Puzzle {
+    pub fn set_penciled(&mut self) -> &mut Puzzle {
         todo!();
-        let r_iter = self.cells.iter_mut();
-
     }
 
     /// Sets a new puzzle using 2-D vector parameter
     pub fn set_initial(&mut self, initial: Vec<Vec<usize>>) -> &mut Puzzle {
+
         for (row, row_vec) in initial.iter().enumerate() {
             for (col, cell) in row_vec.iter().enumerate() {
                 if *cell == 0 {
@@ -210,61 +208,39 @@ impl Puzzle {
         self
     }
 
+
     // Used to check for valid entry along the row
     fn check_row(&self, cell: usize) -> bool {
-        let right: usize = self.cells[cell].num();
-        let (row, col): (usize, usize) = (Puzzle::get_row(cell), Puzzle::get_col(cell));
+        // If valid, there will be only one entry in the row with the cell's number (the cell itself)
+        self.row_iter(cell)
+            .filter(|x| x.num() == self.cells[cell].num())
+            .map(|x| true)
+            .collect::<Vec<bool>>()
+            .len()
+            == 1
 
-        for c in 0..MAX_NUM {
-            if c != col {
-                let left = self.cells[Puzzle::get_cell(row, c)].num();
-
-                if left == right {
-                    return false;
-                }
-            }
-        }
-        true
     }
 
     // Used to check for valid entry along the column
     fn check_col(&self, cell: usize) -> bool {
-        let right: usize = self.cells[cell].num();
-        let (row, col): (usize, usize) = (Puzzle::get_row(cell), Puzzle::get_col(cell));
-
-        for r in 0..MAX_NUM {
-            if r != row {
-                let left = self.cells[Puzzle::get_cell(r, col)].num();
-                if left == right {
-                    return false;
-                }
-            }
-        }
-        true
+        // If valid, there will be only one entry in the col with the cell's number (the cell itself)
+        self.col_iter(cell)
+            .filter(|x| x.num() == self.cells[cell].num())
+            .map(|x| true)
+            .collect::<Vec<bool>>()
+            .len()
+            == 1
     }
+
     // Used to check for valid entry in the associated box.
     fn check_box(&self, cell: usize) -> bool {
-        let right: usize = self.cells[cell].num();
-        let (row, col): (usize, usize) = (Puzzle::get_row(cell), Puzzle::get_col(cell));
-
-        //get box coordinate
-        let box_num: (usize, usize) = (row / BOX_DIMEN, col / BOX_DIMEN);
-
-        // go through each cell in the box
-        for r in 0..BOX_DIMEN {
-            for c in 0..BOX_DIMEN {
-                let other_coord: (usize, usize) =
-                    (box_num.0 * BOX_DIMEN + r, box_num.1 * BOX_DIMEN + c);
-                // Prevents self-checking
-                if (row, col) != other_coord {
-                    let left = self.cells[Puzzle::get_cell(other_coord.0, other_coord.1)].num();
-                    if left == right {
-                        return false;
-                    }
-                }
-            }
-        }
-        true
+        // If valid, there will be only one entry in the box with the cell's number (the cell itself)
+        self.box_iter(cell)
+            .filter(|x| x.num() == self.cells[cell].num())
+            .map(|x| true)
+            .collect::<Vec<bool>>()
+            .len()
+            == 1
     }
 
     // Simple collection of validity checks
@@ -409,7 +385,7 @@ impl Puzzle {
 mod tests {
     use super::*;
 
-    fn get_example () -> Vec<Vec<usize>> {
+    fn get_example() -> Vec<Vec<usize>> {
         vec![
             vec![5, 3, 0, 0, 7, 0, 0, 0, 0],
             vec![6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -424,16 +400,14 @@ mod tests {
     }
 
     #[test]
-    fn get_box_test () {
+    fn get_box_test() {
         assert_eq!(Puzzle::get_box(10), 0);
         assert_eq!(Puzzle::get_box(26), 2);
         assert_eq!(Puzzle::get_box(30), 4);
         assert_eq!(Puzzle::get_box(80), 8);
-
-
     }
     #[test]
-    fn row_iter_test (){
+    fn row_iter_test() {
         let example = get_example();
 
         let example_copy = example.clone();
@@ -452,10 +426,9 @@ mod tests {
         assert_eq!(iter.next().unwrap().num(), 7);
         assert_eq!(iter.next().unwrap().num(), 9);
         assert!(iter.next().is_none());
-
     }
     #[test]
-    fn col_iter_test () {
+    fn col_iter_test() {
         let example = get_example();
         let example_copy = example.clone();
 
@@ -478,10 +451,9 @@ mod tests {
     }
 
     #[test]
-    fn box_iter_test () {
+    fn box_iter_test() {
         let example = get_example();
         let example_copy = example.clone();
-
 
         let mut res = Puzzle::new();
         res.set_initial(example);
@@ -505,8 +477,6 @@ mod tests {
         assert_eq!(iter.next().unwrap().num(), 9);
         assert!(iter.next().is_none());
     }
-
-
 
     #[test]
     fn sudoku_test() {
