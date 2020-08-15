@@ -1,27 +1,30 @@
-use crate::Pencil::Calcs;
+mod human_calcs;
+
+
 use std::collections::HashSet;
 use std::iter::Skip;
 
-use std::slice::Iter;
+use std::slice::{Iter, IterMut};
 
 static BOX_DIMEN: usize = 3;
 static MAX_NUM: usize = BOX_DIMEN * BOX_DIMEN;
 static NUM_CELLS: usize = MAX_NUM * MAX_NUM;
 
+
 /// Enum to determine if pencil marks are made by user (for game usage)
 /// or by the system (for solving algorithms)
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum Pencil {
-    User(usize),
-    Calcs(usize),
-}
+// #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+// pub enum Pencil {
+//     User(usize),
+//     Calcs(usize),
+// }
 
 // The Cell struct contains the number, boolean if it is fixed, and functions to incremement
 #[derive(Clone, PartialEq, Debug)]
 pub struct Cell {
     num: usize,
     fixed: bool,
-    penciled: HashSet<Pencil>,
+    penciled: HashSet<usize>,
 }
 
 impl Default for Cell {
@@ -73,25 +76,27 @@ impl Cell {
         self.num = val;
     }
 
-    fn is_possible(&self, val: Pencil) -> bool {
+    fn is_possible(&self, val: usize) -> bool {
         self.penciled.contains(&val)
     }
 
-    fn mark_possible(&mut self, val: Pencil) -> bool {
+    fn mark_possible(&mut self, val: usize) -> bool {
         self.penciled.insert(val)
     }
 
-    fn remove_possible(&mut self, val: Pencil) -> bool {
+    fn remove_possible(&mut self, val: usize) -> bool {
         self.penciled.remove(&val)
     }
 
-    pub fn poss_iter(&'_ self) -> impl Iterator<Item = &Pencil> {
+    pub fn poss_iter(&'_ self) -> impl Iterator<Item = &usize> {
         self.penciled.iter()
     }
+
+    pub fn get_penciled (&mut self) -> &mut HashSet<usize> {&mut self.penciled}
 }
 
 // pub struct CellIter<'a> {
-//     i_penciled: &'a HashSet<Pencil>,
+//     i_penciled: &'a HashSet<usize>,
 //     index: usize,
 // }
 //
@@ -109,7 +114,7 @@ impl Cell {
 //
 // impl<'a> Iterator for CellIter<'a> {
 //     type Item = usize;
-//     fn next(&mut self) -> Option<Pencil> {
+//     fn next(&mut self) -> Option<usize> {
 //         let res = match self.i_penciled.get(&self.index) {
 //             None => None,
 //             Some(v) => Some(*v),
@@ -121,7 +126,7 @@ impl Cell {
 /// Contains a row dominant 1-D vector for all the cells in the puzzle
 #[derive(Clone, Debug, Default)]
 pub struct Puzzle {
-    cells: Vec<Cell>,
+    pub cells: Vec<Cell>,
 }
 
 pub struct BoxIter<'a> {
@@ -129,9 +134,31 @@ pub struct BoxIter<'a> {
     index: usize,
 }
 
+pub struct BoxIterMut<'a> {
+    it: Skip<IterMut<'a, Cell>>,
+    index: usize,
+}
+
 impl<'a> Iterator for BoxIter<'a> {
     type Item = &'a Cell;
     fn next(&mut self) -> Option<&'a Cell> {
+        self.index += 1;
+        // This check prevents skipping to next row in the upcoming match statement
+        if self.index == 1 {
+            return self.it.next();
+        }
+
+        match self.index {
+            v if v > MAX_NUM => None,
+            v if v % BOX_DIMEN == 1 => self.it.nth(MAX_NUM - BOX_DIMEN),
+            _ => self.it.next(),
+        }
+    }
+}
+
+impl<'a> Iterator for BoxIterMut<'a> {
+    type Item = &'a mut Cell;
+    fn next(&mut self) -> Option<&'a mut Cell> {
         self.index += 1;
         // This check prevents skipping to next row in the upcoming match statement
         if self.index == 1 {
@@ -191,6 +218,27 @@ impl Puzzle {
         }
     }
 
+    fn row_iter_mut(&mut self, index: usize) -> impl Iterator<Item = &'_ mut Cell> {
+        let row = Puzzle::get_row(index);
+        self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter_mut()
+    }
+
+    fn col_iter_mut<'a>(&'a mut self, index: usize) -> impl Iterator<Item = &'a mut Cell> {
+        let col = Puzzle::get_col(index);
+        self.cells.iter_mut().skip(col).step_by(MAX_NUM)
+    }
+
+    fn box_iter_mut(&mut self, index: usize) -> BoxIterMut {
+        let box_num = Puzzle::get_box(index);
+        let start_row = (box_num / BOX_DIMEN) * BOX_DIMEN;
+        let start_col = (box_num % BOX_DIMEN) * BOX_DIMEN;
+
+        BoxIterMut {
+            it: self.cells.iter_mut().skip(start_row * MAX_NUM + start_col),
+            index: 0,
+        }
+    }
+
     // Assumes that the puzzle has already been initially set
     fn set_penciled(&mut self) -> &mut Self {
         // For all cells that are not fixed...
@@ -202,9 +250,9 @@ impl Puzzle {
                 .single_iterator(i)
                 .map(|x| x.num())
                 .collect::<HashSet<usize>>();
-            for n in 1..MAX_NUM {
+            for n in 1..=MAX_NUM {
                 if !set.contains(&n) {
-                    self.cells[i].mark_possible(Calcs(n));
+                    self.cells[i].mark_possible(n);
                 }
             }
         }
@@ -229,8 +277,16 @@ impl Puzzle {
         self.box_iter(index)
             .chain(self.row_iter(index).chain(self.col_iter(index)))
     }
-    // Simple collection of validity checks
-    fn valid(&self, index: usize) -> bool {
+
+    fn single_iterator_mut(&mut self, index: usize) -> impl Iterator<Item = &mut Cell> {
+
+        self.box_iter_mut(index)
+            .chain(self.row_iter_mut(index).chain(self.col_iter_mut(index)))
+
+     }
+
+    /// Checks if the cell is valid by comparing it to other cells in row, column, and associated box.
+    pub fn valid(&self, index: usize) -> bool {
         // The three iterators used to check for validity are "dumb", as in they check the cell in question.
         // This will result in 1 match per iterator, therefore the expected Vec length is 3 if it is a valid puzzle.
         self.single_iterator(index)
@@ -347,7 +403,6 @@ impl Puzzle {
                     self.cells[position].inc();
                 } else {
                     // else reset position
-
                     // move position to next previous non-fixed
                     'move_left: loop {
                         self.cells[position].reset();
@@ -471,23 +526,23 @@ mod tests {
         puz.set_initial(example);
 
         assert_eq!(
-            puz.cells[1].poss_iter().collect::<HashSet<&Pencil>>().len(),
+            puz.cells[1].poss_iter().collect::<HashSet<&usize>>().len(),
             0
         );
-        let mut cell2 = puz.cells[2].poss_iter().collect::<HashSet<&Pencil>>();
+        let mut cell2 = puz.cells[2].poss_iter().collect::<HashSet<&usize>>();
 
         assert_eq!(cell2.len(), 3);
         let expected: [usize; 3] = [1, 2, 4];
         for exp in expected.iter() {
-            assert!(cell2.remove(&Calcs(*exp)));
+            assert!(cell2.remove(&exp));
         }
         assert!(cell2.is_empty());
 
-        let mut cell78 = puz.cells[78].poss_iter().collect::<HashSet<&Pencil>>();
+        let mut cell78 = puz.cells[78].poss_iter().collect::<HashSet<&usize>>();
         assert_eq!(cell78.len(), 4);
         let expected: [usize; 4] = [1, 3, 4, 6];
         for exp in expected.iter() {
-            assert!(cell78.remove(&Calcs(*exp)));
+            assert!(cell78.remove(&exp));
         }
         assert!(cell78.is_empty());
     }
