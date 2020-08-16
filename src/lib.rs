@@ -278,12 +278,12 @@ impl Puzzle {
             .chain(self.row_iter(index).chain(self.col_iter(index)))
     }
 
-    fn single_iterator_mut(&mut self, index: usize) -> impl Iterator<Item = &mut Cell> {
-
-        self.box_iter_mut(index)
-            .chain(self.row_iter_mut(index).chain(self.col_iter_mut(index)))
-
-     }
+    // fn single_iterator_mut(&mut self, index: usize) -> impl Iterator<Item = &mut Cell> {
+    //
+    //     self.box_iter_mut(index)
+    //         .chain(self.row_iter_mut(index).chain(self.col_iter_mut(index)))
+    //
+    //  }
 
     /// Checks if the cell is valid by comparing it to other cells in row, column, and associated box.
     pub fn valid(&self, index: usize) -> bool {
@@ -443,6 +443,22 @@ mod tests {
         ]
     }
 
+    #[test]
+    fn mut_iter_test() {
+        let mut puz = Puzzle::new();
+        puz.set_initial(get_example());
+        let mut iter = puz.col_iter_mut(2);
+        iter.next();
+        let cell = iter.next().unwrap();
+        assert_eq!(cell.num(), 0);
+        assert_eq!(cell.penciled.len(), 3);
+        cell.penciled.remove(&2);
+        assert_eq!(cell.penciled.len(), 2);
+        iter.next();
+        assert_eq!(cell.penciled.len(), 2);
+        assert_eq!(cell.num(), 0);
+
+    }
     #[test]
     fn get_box_test() {
         assert_eq!(Puzzle::get_box(10), 0);
