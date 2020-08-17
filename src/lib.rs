@@ -1,6 +1,7 @@
 mod human_calcs;
+mod support;
 
-
+use crate::support::*;
 use std::collections::HashSet;
 use std::iter::Skip;
 
@@ -9,7 +10,6 @@ use std::slice::{Iter, IterMut};
 static BOX_DIMEN: usize = 3;
 static MAX_NUM: usize = BOX_DIMEN * BOX_DIMEN;
 static NUM_CELLS: usize = MAX_NUM * MAX_NUM;
-
 
 /// Enum to determine if pencil marks are made by user (for game usage)
 /// or by the system (for solving algorithms)
@@ -92,37 +92,11 @@ impl Cell {
         self.penciled.iter()
     }
 
-    pub fn get_penciled (&mut self) -> &mut HashSet<usize> {&mut self.penciled}
+    pub fn get_penciled(&mut self) -> &mut HashSet<usize> {
+        &mut self.penciled
+    }
 }
 
-// pub struct CellIter<'a> {
-//     i_penciled: &'a HashSet<usize>,
-//     index: usize,
-// }
-//
-// impl<'a> IntoIterator for &'a Cell {
-//     type Item = usize;
-//     type IntoIter = CellIter<'a>;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         CellIter {
-//             i_penciled: &self.penciled,
-//             index: 0,
-//         }
-//     }
-// }
-//
-// impl<'a> Iterator for CellIter<'a> {
-//     type Item = usize;
-//     fn next(&mut self) -> Option<usize> {
-//         let res = match self.i_penciled.get(&self.index) {
-//             None => None,
-//             Some(v) => Some(*v),
-//         };
-//         self.index += 1;
-//         res
-//     }
-// }
 /// Contains a row dominant 1-D vector for all the cells in the puzzle
 #[derive(Clone, Debug, Default)]
 pub struct Puzzle {
@@ -179,36 +153,18 @@ impl Puzzle {
         }
     }
 
-    // convert 2-D coordinate to 1-D
-    fn get_cell(row: usize, col: usize) -> usize {
-        row * MAX_NUM + col
-    }
-
-    // covert 1-D coordinate to 2-D
-    fn get_row(index: usize) -> usize {
-        index / MAX_NUM
-    }
-    fn get_col(index: usize) -> usize {
-        index % MAX_NUM
-    }
-
-    fn get_box(index: usize) -> usize {
-        let (r, c) = (Puzzle::get_row(index), Puzzle::get_col(index));
-        (r / BOX_DIMEN) * BOX_DIMEN + (c / BOX_DIMEN)
-    }
-
     fn row_iter(&self, index: usize) -> Iter<Cell> {
-        let row = Puzzle::get_row(index);
+        let row = get_row(index);
         self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter()
     }
 
     fn col_iter(&self, index: usize) -> std::iter::StepBy<Skip<Iter<Cell>>> {
-        let col = Puzzle::get_col(index);
+        let col = get_col(index);
         self.cells.iter().skip(col).step_by(MAX_NUM)
     }
 
     fn box_iter(&self, index: usize) -> BoxIter {
-        let box_num = Puzzle::get_box(index);
+        let box_num = get_box(index);
         let start_row = (box_num / BOX_DIMEN) * BOX_DIMEN;
         let start_col = (box_num % BOX_DIMEN) * BOX_DIMEN;
 
@@ -219,17 +175,17 @@ impl Puzzle {
     }
 
     fn row_iter_mut(&mut self, index: usize) -> impl Iterator<Item = &'_ mut Cell> {
-        let row = Puzzle::get_row(index);
+        let row = get_row(index);
         self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter_mut()
     }
 
     fn col_iter_mut<'a>(&'a mut self, index: usize) -> impl Iterator<Item = &'a mut Cell> {
-        let col = Puzzle::get_col(index);
+        let col = get_col(index);
         self.cells.iter_mut().skip(col).step_by(MAX_NUM)
     }
 
     fn box_iter_mut(&mut self, index: usize) -> BoxIterMut {
-        let box_num = Puzzle::get_box(index);
+        let box_num = get_box(index);
         let start_row = (box_num / BOX_DIMEN) * BOX_DIMEN;
         let start_col = (box_num % BOX_DIMEN) * BOX_DIMEN;
 
@@ -266,7 +222,7 @@ impl Puzzle {
                 if *cell == 0 {
                     continue;
                 } else {
-                    self.cells[Puzzle::get_cell(row, col)].set_cell_initial(*cell);
+                    self.cells[get_cell(row, col)].set_cell_initial(*cell);
                 }
             }
         }
@@ -355,7 +311,7 @@ impl Puzzle {
                     // Covert self to 2-D vector to add to solution vector
                     let mut solution: Vec<Vec<usize>> = vec![vec![0; MAX_NUM]; MAX_NUM];
                     for (i, cell) in self.cells.iter().enumerate() {
-                        solution[Puzzle::get_row(i)][Puzzle::get_col(i)] = cell.num();
+                        solution[get_row(i)][get_col(i)] = cell.num();
                     }
                     to_return.push(solution);
 
@@ -392,8 +348,14 @@ impl Puzzle {
                         }
                     };
 
-                    //increment the position
-                    self.cells[position].inc();
+                    /*
+                        increment the position.  This if statement needed to finish solving for human calcs.
+                        'Human_calcs' functions could have changed the value, while the cell is not listed as "fixed"
+                        Without the if statement, a valid number would be incremented into a non-valid and the puzzle unsolvable.
+                     */
+                    if self.cells[position].num() == 0 {
+                        self.cells[position].inc();
+                    }
                 }
             } else {
                 // if not valid
@@ -457,14 +419,13 @@ mod tests {
         iter.next();
         assert_eq!(cell.penciled.len(), 2);
         assert_eq!(cell.num(), 0);
-
     }
     #[test]
     fn get_box_test() {
-        assert_eq!(Puzzle::get_box(10), 0);
-        assert_eq!(Puzzle::get_box(26), 2);
-        assert_eq!(Puzzle::get_box(30), 4);
-        assert_eq!(Puzzle::get_box(80), 8);
+        assert_eq!(get_box(10), 0);
+        assert_eq!(get_box(26), 2);
+        assert_eq!(get_box(30), 4);
+        assert_eq!(get_box(80), 8);
     }
     #[test]
     fn row_iter_test() {
