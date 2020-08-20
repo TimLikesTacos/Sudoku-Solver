@@ -1,4 +1,3 @@
-
 //! Custom errors
 #[derive(Debug)]
 pub enum SudError {
