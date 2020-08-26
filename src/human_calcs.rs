@@ -8,11 +8,13 @@ pub trait BasicHumanMethods {
     /// Returns a vector of tuples of (index value, number filled in).
     fn single_candidate(&mut self, fill: bool) -> Vec<(usize, Element)>;
 
+
     /// Fills in single possibilities, returns vector of what positions were filled.
     /// A single possibility is where only one cell in a row/column/box has the possibility of a value.
     /// If optional 'fill' parameter is true, will mark the position, else, just calculates how many and where.
     /// Returns a vector of tuples of (index value, number filled in).
     fn single_possibility(&mut self, fill: bool) -> Vec<(usize, Element)>;
+    fn single_possibility_slower(&mut self, fill: bool) -> Vec<(usize, Element)>;
 
     /// A naked pair is where two cells have the same potential values, and no others.
     /// For example, two cells have a possibility of either `2`, or `4`. This means that `2` belongs to one of these
@@ -32,9 +34,12 @@ pub trait BasicHumanMethods {
     /// single_candidate or single_possibility.   
     /// Returns a set containing the indicies in which belong to a x-uple.
     fn hidden_tuple(&mut self) -> BTreeSet<usize>;
+    fn locked_candidates (&mut self, fill: bool) -> Vec<(usize, Element)> ;
 }
 
 impl BasicHumanMethods for Puzzle {
+
+    // O(n) where n is the number of cells
     fn single_candidate(&mut self, fill: bool) -> Vec<(usize, Element)> {
         // This vector contains coordinate and value for cells that are solved for.  This can be used to debug
         // or function modified to return this vector for display.
@@ -50,10 +55,12 @@ impl BasicHumanMethods for Puzzle {
                 .collect::<Vec<usize>>();
 
             for i in single_cands {
-                let val: Element = *self.cells[i].penciled().iter().next().unwrap();
+
+                let val: Element = *self.cells[i].penciled().iter().next().expect(format!("index: {}", i).as_str());
                 // Mark the cell that has one candidate
                 if fill {
                     self.cells[i].set(val);
+                    self.cells[i].fixed = true;
                     update_pencil_after_add(self, i);
                 }
                 // Update others that this value is now no longer a candidate
@@ -68,12 +75,143 @@ impl BasicHumanMethods for Puzzle {
         count
     }
 
+    fn single_possibility_slower(&mut self, fill: bool) -> Vec<(usize, Element)> {
+
+        let mut adds: Vec<(usize, Element)> = Vec::new();
+
+        let ind_in_row = |row, col| get_cell(row, col);
+        let ind_in_col = |col, row| get_cell(row, col);
+        let ind_in_box = |el_box, ind| index_from_box(el_box, ind);
+
+        let mut end_adds = adds.len();
+        loop {
+            let count = adds.len();
+            for iteration in 0..MAX_NUM {
+
+                 adds.append(&mut find_single (self.row_iter(index_from_row(iteration, 0)), iteration, ind_in_row));
+                 adds.append(&mut find_single (self.col_iter(index_from_col(iteration, 0)), iteration, ind_in_col));
+                 adds.append(&mut find_single (self.box_iter(start_of_box(iteration)), iteration, ind_in_box));
+
+                for (ind, val) in adds.iter().skip(end_adds) {
+                    if fill {
+                        self.cells[*ind].set(*val);
+                        self.cells[*ind].fixed = true;
+                        update_pencil_after_add(self, *ind);
+                    }
+                }
+                end_adds = adds.len();
+
+            }
+            if count == adds.len(){
+                break;
+            }
+        }
+
+
+        fn find_single <'a, F, I>(iter: I, iteration: usize, func: F) -> Vec<(usize, Element)>
+        where F: Fn(usize, usize) -> usize, I: Iterator<Item = &'a Cell>
+        {
+
+            let the_cells = iter.collect::<Vec<&Cell>>();
+            let mut section_add: Vec<(usize, Element)> = Vec::new();
+            for i in 0..MAX_NUM {
+                if the_cells[i].fixed() {
+                    continue;
+                }
+                let index = func(iteration, i);
+                if index == 32 {
+                    dbg!(the_cells[i]);
+                }
+                let other_sets = the_cells.iter()
+                    .enumerate()
+                    .filter (|(step, _)| *step != i )
+                    .fold(BTreeSet::new(), |set, (_, s)| set.union(s.penciled()).cloned().collect());
+                let values = the_cells[i].penciled().difference(&other_sets).cloned().collect::<Vec<Element>>();
+                // If values is greater than 1 element, it would mean the puzzle is invalid due to two unique numbers in one spot.
+                assert!(values.len() <= 1, "values: {:?} \nother_sets: {:?}\ncell: {:?}\nIndex: {}\nIteration: {}", values, other_sets, the_cells[index].penciled(), index, iteration);
+                if values.len() > 0 {
+                    section_add.push((index, values[0]));
+                }
+
+            }
+            section_add
+        }
+
+        adds
+    }
+
+    fn locked_candidates(&mut self, fill: bool) -> Vec<(usize, Element)> {
+        let mut cand: Vec<(usize, Element)> = Vec::new();
+
+        for box_number in 0..MAX_NUM {
+            let start_ind = start_of_box(box_number);
+            for row in 0..BOX_DIMEN {
+                let amount_to_skip = row * BOX_DIMEN;
+                let start_row_index = start_ind + row * MAX_NUM;
+                let start_col_index = index_to_col(start_ind);
+
+                // Get a set of what is in the 6 other cells in the box, compare it to the three in question for the row
+                let box_set = self
+                    .box_iter(start_of_box(box_number))
+                    .enumerate()
+                    .filter(|(i,c)| (*i < amount_to_skip || *i >= (amount_to_skip + BOX_DIMEN)) && c.penciled().len() != 0 )
+                    .fold(BTreeSet::new(), |acc, (_, s)| acc.union(&s.penciled()).cloned().collect::<BTreeSet<Element>>());
+                let row_set = self
+                    .row_iter(start_row_index)
+                    .skip(start_col_index)
+                    .enumerate()
+                    .filter(|(_, c)| c.penciled().len() != 0)
+                    .take_while(|(i, _)| *i < BOX_DIMEN)
+                    .fold (BTreeSet::new(), |acc, (_, s)| acc.union(&s.penciled()).cloned().collect::<BTreeSet<Element>>());
+
+                // Get difference between sets.  Any difference will be a locked candidate in a box and other elements in the row can
+                // have their possible values modified
+                let locked_cands_num = row_set.difference(&box_set).cloned().collect::<Vec<Element>>();
+                for num in locked_cands_num {
+                    let mut locked_cells = self
+                        .row_iter_mut(start_row_index)
+                        .skip(start_col_index)
+                        .enumerate()
+                        .take_while(|(i, _)| *i < BOX_DIMEN)
+                        .filter(|(_, c)| c.penciled().contains(&num))
+                        .collect::<Vec<(usize, &mut Cell)>>();
+                    for (i, _) in locked_cells {
+                        cand.push((i + start_row_index + start_col_index , num));
+                    }
+                    let mut affected_cells = self
+                        .row_iter_mut(start_row_index)
+                        .enumerate()
+                        .filter (|(i, c)| (*i < start_col_index || *i >= start_col_index + BOX_DIMEN) && c.penciled().contains(&num))
+                        .map (|(_, c)| c)
+                        .collect::<Vec<&mut Cell>>();
+
+                    for c in affected_cells {
+                        c.remove_possible(num);
+                    }
+
+
+                }
+
+            }
+
+            /*
+            Same thing, but with the column in the box
+             */
+           
+            let box_iter = self.box_iter(start_of_box(box_number));
+            // Check if
+        }
+
+        cand
+    }
+
     fn single_possibility(&mut self, fill: bool) -> Vec<(usize, Element)> {
         enum IterResult {
             None,
             Multiple,
             Single(usize),
         }
+
 
         let mut adds: Vec<(usize, Element)> = Vec::new();
         loop {
@@ -171,12 +309,11 @@ impl BasicHumanMethods for Puzzle {
                 break;
             }
         }
+
         adds
     }
 
     fn naked_tuple(&mut self) -> BTreeSet<usize> {
-
-
         // Used to find the index when iterating over a row.  'col' comes from the enumeration of the iterator
         let ind_in_row = |row, col| get_cell(row, col);
 
@@ -239,67 +376,9 @@ impl BasicHumanMethods for Puzzle {
             I: Iterator<Item = &'a mut Cell>,
             F: Fn(usize, usize) -> usize,
         {
-            // Copy the cell references
+            // Copy the cell references for the row / column / box
             let mut the_cells_mut = iter.collect::<Vec<&'a mut Cell>>();
 
-            let mut initial_sets = the_cells_mut
-                .iter()
-                .filter(|c| c.penciled().len() > 0)
-                .map(|c| c.penciled().clone())
-                .collect::<Vec<BTreeSet<Element>>>();
-
-            let mut more_sets = find_new_sets(&initial_sets);
-            more_sets.append(&mut initial_sets);
-
-            // Map of pencil mark sets to indices which contain a subset of the marks.
-            let mut set_to_index: HashMap<BTreeSet<Element>, BTreeSet<usize>> = HashMap::new();
-
-            // Matches subsets of the set to cells.
-            for (i, cell) in the_cells_mut.iter().enumerate().filter(|(_, c)| !c.fixed()) {
-                for set in &more_sets {
-                    if set.is_superset(cell.penciled()) {
-                        let mut insert: BTreeSet<usize> = BTreeSet::new();
-                        insert.insert(func(iteration, i));
-                        let residual = set_to_index.insert(set.clone(), insert);
-                        match residual {
-                            None => (),
-                            // If the key existed, the value gets removed and returned.  This adds it back in.
-                            Some(v) => {
-                                let s = set_to_index.get_mut(&set).unwrap();
-                                let s = &mut s.union(&v).cloned().collect::<BTreeSet<usize>>();
-                                // todo: Fix this line and all the darn cloning
-                                set_to_index.insert(set.clone(), s.clone());
-                            }
-                        }
-                    }
-                }
-            }
-
-            let mut ret: BTreeSet<usize> = BTreeSet::new();
-            for (set, cells) in set_to_index {
-                // It's a tuple if the size of the set is the same as the size of the number of cells that contain that set
-                // of possible values
-                if set.len() == cells.len() {
-                    // Clear out possiblities for other cells, but not the ones that make the tuple
-                    the_cells_mut
-                        .iter_mut()
-                        .enumerate()
-                        .map(|(i, cell)| {
-                            let index = func(iteration, i);
-                            if !cells.contains(&index) {
-                                for val in &set {
-                                    cell.remove_possible(*val);
-                                }
-                            }
-                        })
-                        .all(|_| true);
-
-                    ret = ret
-                        .union(&cells.clone())
-                        .cloned()
-                        .collect::<BTreeSet<usize>>();
-                }
-            }
 
             /*
              Builds a map, mapping a cell's pencil marks to the cell(s) that have it.  If there are multiple
@@ -317,15 +396,87 @@ impl BasicHumanMethods for Puzzle {
              This occurs later in the function
             */
 
+            let mut initial_sets = the_cells_mut
+                .iter()
+                .filter(|c| c.penciled().len() > 0)
+                .map(|c| c.penciled().clone())
+                .collect::<Vec<BTreeSet<Element>>>();
+
+            // More sets, including the (2,7), (2,4), (4,7) case above are found here.
+            let mut more_sets = find_new_sets(&initial_sets);
+            more_sets.append(&mut initial_sets);
+
+            // Map of pencil mark sets to indices which contain a subset of the marks.
+            // The indicies are relative to the iterator over the set.  I.e. index 2 on row 3 would be cell 20
+            let mut set_to_index: HashMap<BTreeSet<Element>, BTreeSet<usize>> = HashMap::new();
+
+            // Matches subsets of the set to cells.
+            for (i, cell) in the_cells_mut
+                .iter()
+                .enumerate()
+                .filter(|(_, c)| !c.fixed())
+            {
+                for set in &more_sets {
+                    if set.is_superset(cell.penciled()) {
+                        let mut insert: BTreeSet<usize> = BTreeSet::new();
+                        insert.insert( i);
+                        let residual = set_to_index.insert(set.clone(), insert);
+                        match residual {
+                            None => (),
+                            // If the key existed, the value gets removed and returned.  This adds it back in.
+                            Some(v) => {
+                                let s = set_to_index.get_mut(&set).unwrap();
+                                let s = &mut s.union(&v).cloned().collect::<BTreeSet<usize>>();
+                                // todo: Fix this line and all the darn cloning
+                                set_to_index.insert(set.clone(), s.clone());
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            let mut ret: BTreeSet<usize> = BTreeSet::new();
+            for (set, cells) in set_to_index {
+                // It's a tuple if the size of the set is the same as the size of the number of cells that contain that set
+                // of possible values
+                let union_of_involved_sets = the_cells_mut.iter()
+                    .enumerate()
+                    .filter (|(i, _)| cells.contains(i))
+                    .fold(BTreeSet::new(), |acc, (_, c)| acc.union(c.penciled()).cloned().collect());
+                if set.len() == cells.len() && set == union_of_involved_sets {
+                    // Clear out possiblities for other cells, but not the ones that make the tuple
+                    let nums_to_elim : BTreeSet<Element>= set.intersection(&union_of_involved_sets).cloned().collect();
+                    the_cells_mut
+                        .iter_mut()
+                        .enumerate()
+                        .map(|(i, cell)| {
+
+                            if !cells.contains(&i) {
+                                for val in &nums_to_elim {
+
+                                    cell.remove_possible(*val);
+                                }
+                            }
+                        })
+                        .all(|_| true);
+
+                    ret = ret
+                        .union(&cells.iter().map(|i| func(iteration,*i)).collect())
+                        .cloned()
+                        .collect::<BTreeSet<usize>>();
+                }
+            }
+
+            // Used to merge sets together, so that sets like (2,7), (2,4), (4,7) can be paired.
             fn find_new_sets(sets: &Vec<BTreeSet<Element>>) -> Vec<BTreeSet<Element>> {
                 let mut ret: Vec<BTreeSet<Element>> = Vec::new();
                 loop {
                     let size = sets.len();
                     for (i, one) in sets.iter().enumerate() {
                         for other in sets.iter().skip(i + 1) {
-
-                            let joined: BTreeSet<Element> = one.union(&other).map(|x| *x).collect();
-                            if joined.len() <= MAX_NUM / 2 {
+                            let joined: BTreeSet<Element> = one.union(&other).cloned().collect();
+                            if !ret.contains(&joined)  {
                                 ret.push(joined);
                             }
                         }
@@ -336,6 +487,7 @@ impl BasicHumanMethods for Puzzle {
                         break;
                     }
                 }
+
                 ret
             }
 
@@ -445,7 +597,7 @@ mod human_method_tests {
             vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
         ];
 
-        let res = puz.single_candidate( true);
+        let res = puz.single_candidate(true);
 
         assert!(res.contains(&(10, 7)));
         assert!(res.contains(&(18, 1)));
@@ -454,6 +606,50 @@ mod human_method_tests {
         for (act, exp) in puz.cells.iter().zip(expected.iter().flatten()) {
             assert_eq!(act.num(), *exp);
         }
+    }
+
+    #[test]
+    fn locked_cand_test () {
+        let mut puz = Puzzle::new();
+        let str = "984........25...4...19.4..2..6.9723...36.2...2.9.3561.195768423427351896638..9751";
+        puz.set_initial(str.as_input().unwrap());
+        assert!(puz.brute_force_solve().len() == 1);
+
+        let mut puz = Puzzle::new();
+        let str = "984........25...4...19.4..2..6.9723...36.2...2.9.3561.195768423427351896638..9751";
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.locked_candidates(true);
+        dbg!(&res);
+        assert!(res.contains(&(get_cell(2,0), 5)));
+        assert!(res.contains(&(get_cell(2,1), 5)));
+        assert!(!puz.cells[get_cell(2, 6)].penciled().contains(&5));
+
+
+    }
+
+    // #[test]
+    // fn single_poss_multiple () {
+    //     for _ in 0..1000 {
+    //         single_possibility_test();
+    //     }
+    // }
+    //
+    // #[test]
+    // fn single_poss_faster_multiple () {
+    //     for _ in 0..1000 {
+    //         single_possibility_faster_test();
+    //     }
+    // }
+
+    #[test]
+    fn diff_single_poss () {
+        let mut puz1 = get_puzzle();
+        let mut puz2 = get_puzzle();
+        puz1.single_possibility(true);
+        puz2.single_possibility_slower(true);
+
+        assert_eq!(puz1, puz2);
+
     }
 
     #[test]
@@ -489,7 +685,56 @@ mod human_method_tests {
         .as_input()
         .unwrap();
 
-        let res = puz.single_possibility( true);
+        let res = puz.single_possibility(true);
+
+        assert!(res.contains(&(get_cell(2, 6), 5)));
+        assert!(res.contains(&(get_cell(5, 6), 8)));
+        assert!(res.contains(&(get_cell(6, 2), 1)));
+        assert!(res.contains(&(get_cell(3, 5), 1)));
+
+        /* This puzzle does not get completely solved using this method.
+         * The remaining portion of the puzzle with be brute forced solved to ensure that the solving is correct
+         */
+        let finished = puz.brute_force_solve();
+        assert_eq!(finished.len(), 1);
+        assert_eq!(finished[0], expected);
+    }
+
+    #[test]
+    fn single_possibility_faster_test() {
+        let mut puz = Puzzle::new();
+        puz.set_initial(
+            (vec![
+                vec![5, 3, 4, 0, 7, 0, 0, 0, 0],
+                vec![6, 0, 2, 1, 9, 5, 0, 0, 0],
+                vec![0, 9, 8, 0, 0, 0, 0, 6, 0],
+                vec![8, 0, 0, 0, 6, 0, 0, 0, 3],
+                vec![4, 0, 0, 8, 0, 3, 0, 0, 1],
+                vec![0, 1, 0, 0, 2, 0, 0, 0, 6],
+                vec![0, 6, 0, 0, 0, 0, 2, 8, 0],
+                vec![0, 0, 0, 4, 1, 9, 0, 0, 5],
+                vec![0, 0, 0, 0, 8, 0, 0, 7, 9],
+            ])
+                .as_input()
+                .unwrap(),
+        );
+
+        let expected: Vec<Element> = (vec![
+            vec![5, 3, 4, 6, 7, 8, 9, 1, 2],
+            vec![6, 7, 2, 1, 9, 5, 3, 4, 8],
+            vec![1, 9, 8, 3, 4, 2, 5, 6, 7],
+            vec![8, 5, 9, 7, 6, 1, 4, 2, 3],
+            vec![4, 2, 6, 8, 5, 3, 7, 9, 1],
+            vec![7, 1, 3, 9, 2, 4, 8, 5, 6],
+            vec![9, 6, 1, 5, 3, 7, 2, 8, 4],
+            vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
+            vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
+        ])
+            .as_input()
+            .unwrap();
+
+        let res = puz.single_possibility_slower(true);
+        dbg!(&res);
 
         assert!(res.contains(&(get_cell(2, 6), 5)));
         assert!(res.contains(&(get_cell(5, 6), 8)));
@@ -534,10 +779,9 @@ mod human_method_tests {
         assert!(res.contains(&get_cell(1, 6)));
         assert!(res.contains(&get_cell(1, 7)));
 
-
         //ensure puzzle is solvable after pencil mark eliminations. This puzzle is solvable with
         // single candidate which uses the pencil marks
-        let count = puz.single_candidate( true);
+        let count = puz.single_candidate(true);
         assert_eq!(count.len(), 25);
 
         // Quick validity check over all filled in blocks.
@@ -572,10 +816,7 @@ mod human_method_tests {
         assert!(res.contains(&get_cell(4, 7)));
         assert!(res.contains(&get_cell(4, 8)));
 
-        // let count = single_candidate(&mut puz, true);
-        // // assert_eq!(count.len(), 23);
 
-        // todo redo brute force to use pencil marks
         // Quick validity check over all filled in blocks.
         let res = puz.brute_force_solve();
         assert_eq!(res.len(), 1);
@@ -596,7 +837,7 @@ mod human_method_tests {
         puz.set_initial(example.as_input().unwrap());
         // There are in fact no single candidates.  Using pairs will free some up and be able to
         // be solved later.
-        let uns = puz.single_candidate( true);
+        let uns = puz.single_candidate(true);
         assert_eq!(uns.len(), 0);
 
         let res = puz.naked_tuple();
@@ -609,11 +850,60 @@ mod human_method_tests {
         assert!(!puz.cells[get_cell(1, 4)].penciled.contains(&1));
 
         // Puzzle is solvable with single_candidate now that some pencil marks were eliminated by tuples.
-        let count = puz.single_candidate( true);
+        let count = puz.single_candidate(true);
         assert!(count.len() == 39); // 39 empty cells
 
         // Quick validity check over all filled in blocks.
         let res = puz.brute_force_solve();
         assert_eq!(res.len(), 1);
+
+        // The following test for hidden triples
+        let str = "5..62..37..489........5....93........2....6.57.......3.....9............68.57...2";
+        let mut puz = Puzzle::new();
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.naked_tuple();
+        let threefive = get_cell (3,5);
+        assert!(res.contains(&threefive));
+        assert!(puz.cells[threefive].penciled().contains(&5));
+        assert!(puz.cells[threefive].penciled().contains(&2));
+        assert!(puz.cells[threefive].penciled().contains(&6));
+        assert!(!puz.cells[threefive].penciled().contains(&1));
+        println!("{:#?}", puz);
+
+
+    }
+
+    #[test]
+    fn royles_17 () {
+        let str = "003400000050000090000200000000096000000000300001000204060080000000000400890050000";
+        let strin = str.chars().into_iter().map(|c| match c {
+            c if c == '0' => '.',
+            c if c == '4' => '8',
+            c if c == '8' => '4',
+            c => c,
+        }).collect::<String>();
+
+        let mut puz = Puzzle::new();
+        puz.set_initial(strin.as_str().as_input().unwrap());
+       puz.single_candidate(true);
+       puz.single_possibility(true);
+       puz.naked_tuple();
+
+
+        puz.single_possibility(true);
+        puz.single_candidate(true);
+        for (_, cell) in puz.cells.iter().enumerate() {
+            assert!({
+                if cell.fixed() {
+                    true
+                } else {
+                    cell.penciled().len() > 0
+                }
+            })
+        }
+        let res = puz.brute_force_solve();
+        dbg!(res.len());
+        assert_eq!(res.len(), 1);
+
     }
 }

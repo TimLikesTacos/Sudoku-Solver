@@ -4,10 +4,11 @@ mod errors;
 mod human_calcs;
 mod support;
 
-use crate::brute::BruteForce;
-use crate::conv_input_output::*;
-use crate::support::*;
-use crate::brute::*;
+pub use crate::brute::BruteForce;
+pub use crate::brute::*;
+pub use crate::conv_input_output::*;
+pub use crate::human_calcs::*;
+pub use crate::support::*;
 use std::collections::{BTreeSet, HashSet};
 use std::iter::Skip;
 
@@ -65,15 +66,16 @@ impl Cell {
     /// Increment cell.  Returns boolean.  True is incremented, false if already at max value or fixed value.
     /// Uses pencil marks to get the next value
     fn inc(&mut self) -> bool {
-
-        if self.fixed{
+        if self.fixed {
             return false;
         }
         match self.penciled.iter().skip_while(|&v| *v <= self.num).next() {
-            Some (v) => {self.num = *v; true},
+            Some(v) => {
+                self.num = *v;
+                true
+            }
             None => false,
         }
-
     }
 
     /// Resets non-fixed cells to zero.
@@ -111,7 +113,7 @@ impl Cell {
 }
 
 /// Contains a row dominant 1-D vector for all the cells in the puzzle
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Puzzle {
     pub cells: Vec<Cell>,
 }
@@ -121,6 +123,7 @@ pub struct BoxIter<'a> {
     it: Skip<Iter<'a, Cell>>,
     index: usize,
 }
+
 /// Mutable version of BoxIter
 pub struct BoxIterMut<'a> {
     it: Skip<IterMut<'a, Cell>>,
@@ -169,17 +172,17 @@ impl Puzzle {
     }
 
     fn row_iter(&self, index: usize) -> impl Iterator<Item = &Cell> {
-        let row = get_row(index);
+        let row = index_to_row(index);
         self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter()
     }
 
     fn col_iter(&self, index: usize) -> impl Iterator<Item = &Cell> {
-        let col = get_col(index);
+        let col = index_to_col(index);
         self.cells.iter().skip(col).step_by(MAX_NUM)
     }
 
     fn box_iter(&self, index: usize) -> BoxIter {
-        let box_num = get_box(index);
+        let box_num = index_to_box(index);
 
         BoxIter {
             it: self.cells.iter().skip(start_of_box(box_num)),
@@ -188,17 +191,17 @@ impl Puzzle {
     }
 
     fn row_iter_mut(&mut self, index: usize) -> impl Iterator<Item = &'_ mut Cell> {
-        let row = get_row(index);
+        let row = index_to_row(index);
         self.cells[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter_mut()
     }
 
     fn col_iter_mut<'a>(&'a mut self, index: usize) -> impl Iterator<Item = &'a mut Cell> {
-        let col = get_col(index);
+        let col = index_to_col(index);
         self.cells.iter_mut().skip(col).step_by(MAX_NUM)
     }
 
     fn box_iter_mut(&mut self, index: usize) -> BoxIterMut {
-        let box_num = get_box(index);
+        let box_num = index_to_box(index);
 
         BoxIterMut {
             it: self.cells.iter_mut().skip(start_of_box(box_num)),
@@ -351,10 +354,10 @@ mod tests {
     }
     #[test]
     fn get_box_test() {
-        assert_eq!(get_box(10), 0);
-        assert_eq!(get_box(26), 2);
-        assert_eq!(get_box(30), 4);
-        assert_eq!(get_box(80), 8);
+        assert_eq!(index_to_box(10), 0);
+        assert_eq!(index_to_box(26), 2);
+        assert_eq!(index_to_box(30), 4);
+        assert_eq!(index_to_box(80), 8);
     }
     #[test]
     fn row_iter_test() {
@@ -455,5 +458,4 @@ mod tests {
         }
         assert!(cell78.is_empty());
     }
-
 }

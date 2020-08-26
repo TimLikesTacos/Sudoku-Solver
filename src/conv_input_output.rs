@@ -1,6 +1,6 @@
 use crate::errors::SudError;
-use crate::{Element, NUM_CELLS, MAX_NUM};
 use crate::errors::SudError::OutputParse;
+use crate::{Element, MAX_NUM, NUM_CELLS};
 
 /// This is used to generate the vector to initially set the puzzle, along with convert the vector to desired output
 pub trait PuzInput {
@@ -46,18 +46,22 @@ pub trait PuzOutput {
 
     /// Conver 1-D vector into 2-D array of type Element.  If there is an unsolved cell, it would
     /// display as `0`
-    fn as_2d_vec (&self) -> Result<Vec<Vec<Element>>, SudError>;
+    fn as_2d_vec(&self) -> Result<Vec<Vec<Element>>, SudError>;
 }
 
 impl PuzOutput for Vec<Element> {
     fn as_string(&self) -> Result<String, SudError> {
         let radix = 10;
-        let str = self.iter().map(|dig|
-            if *dig == 0 {
-                '.'
-            } else {
-                std::char::from_digit(*dig as u32, radix).unwrap()
-            }).collect::<String>();
+        let str = self
+            .iter()
+            .map(|dig| {
+                if *dig == 0 {
+                    '.'
+                } else {
+                    std::char::from_digit(*dig as u32, radix).unwrap()
+                }
+            })
+            .collect::<String>();
 
         if str.len() == NUM_CELLS {
             Ok(str)
@@ -66,7 +70,7 @@ impl PuzOutput for Vec<Element> {
         }
     }
 
-    fn as_2d_vec (&self) -> Result<Vec<Vec<Element>>, SudError> {
+    fn as_2d_vec(&self) -> Result<Vec<Vec<Element>>, SudError> {
         let mut full: Vec<Vec<Element>> = Vec::new();
         let mut row: Vec<Element> = Vec::new();
         for (ind, cell) in self.iter().enumerate() {
@@ -82,9 +86,7 @@ impl PuzOutput for Vec<Element> {
             Err(OutputParse)
         }
     }
-
 }
-
 
 #[cfg(test)]
 mod input_tests {
@@ -131,7 +133,6 @@ mod input_tests {
 
     #[test]
     fn string_in() {
-
         let str =
             "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79";
 
@@ -187,7 +188,6 @@ mod input_tests {
 
     #[test]
     fn string_out() {
-
         let str =
             "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79";
 

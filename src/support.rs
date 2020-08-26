@@ -6,15 +6,15 @@ pub fn get_cell(row: usize, col: usize) -> usize {
 }
 
 // covert 1-D coordinate to 2-D
-pub fn get_row(index: usize) -> usize {
+pub fn index_to_row(index: usize) -> usize {
     index / MAX_NUM
 }
-pub fn get_col(index: usize) -> usize {
+pub fn index_to_col(index: usize) -> usize {
     index % MAX_NUM
 }
 
-pub fn get_box(index: usize) -> usize {
-    let (r, c) = (get_row(index), get_col(index));
+pub fn index_to_box(index: usize) -> usize {
+    let (r, c) = (index_to_row(index), index_to_col(index));
     (r / BOX_DIMEN) * BOX_DIMEN + (c / BOX_DIMEN)
 }
 
@@ -33,6 +33,16 @@ pub fn index_from_box(box_num: usize, index: usize) -> usize {
     let row_cont = (index / BOX_DIMEN) * MAX_NUM;
     start + row_cont + (index % BOX_DIMEN)
 }
+
+pub fn index_from_row(row: usize, index: usize) -> usize {
+    row * MAX_NUM + index
+}
+
+pub fn index_from_col(col: usize, index: usize) -> usize {
+    index * MAX_NUM + col
+}
+
+
 
 #[cfg(test)]
 mod support_tests {

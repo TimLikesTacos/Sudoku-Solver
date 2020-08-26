@@ -9,7 +9,6 @@ impl BruteForce for Puzzle {
     /// Solves the Sudoku puzzle.  Returns a vector of 1-D vectors.  Each 1-D vector represents a
     /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
     fn brute_force_solve(&mut self) -> Vec<Vec<Element>> {
-
         fn move_cursor_right(puz: &Puzzle, cursor: usize) -> Option<usize> {
             let mut cur = cursor;
             loop {
@@ -25,6 +24,7 @@ impl BruteForce for Puzzle {
         }
 
         let mut position: usize = 0;
+        // Stores solutions
         let mut to_return: Vec<Vec<Element>> = Vec::new();
 
         // move position to non-fixed point
@@ -51,6 +51,7 @@ impl BruteForce for Puzzle {
                     let solution: Vec<Element> = self.cells.iter().map(|c| c.num()).collect();
                     to_return.push(solution);
 
+
                     // reset all after backmarker
                     while position > back_marker {
                         // reset starting position, but not the backmarker
@@ -59,7 +60,6 @@ impl BruteForce for Puzzle {
                             Some(v) => v,
                             None => return to_return,
                         }
-
                     }
                     assert_eq!(position, back_marker);
                     //increment the position
@@ -70,11 +70,7 @@ impl BruteForce for Puzzle {
                             Some(v) => v,
                             None => break 'solving,
                         };
-                        // position = match move_cursor_left(self, position) {
-                        //     Some(v) => v,
-                        //     // No other solutions avail
-                        //     None => break 'solving,
-                        // };
+
                         back_marker = position;
                     }
                 } else {
@@ -91,7 +87,6 @@ impl BruteForce for Puzzle {
 
                     // Increment the position, if possible
                     self.cells[position].inc();
-
                 }
             } else {
                 // if not valid
@@ -102,10 +97,9 @@ impl BruteForce for Puzzle {
                     // move position to next previous non-fixed
                     self.cells[position].reset();
                     position = match position.checked_sub(1) {
-                        Some(v)=> v,
+                        Some(v) => v,
                         None => break 'solving,
-                    } ;
-
+                    };
                 }
             }
         }
@@ -146,8 +140,8 @@ pub mod brute_unit {
             vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
             vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
         ])
-            .as_input()
-            .unwrap();
+        .as_input()
+        .unwrap();
 
         let res = Puzzle::new()
             .set_initial(example.as_input().unwrap())
@@ -181,8 +175,8 @@ pub mod brute_unit {
             vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
             vec![1, 5, 4, 9, 3, 8, 6, 7, 2],
         ])
-            .as_input()
-            .unwrap();
+        .as_input()
+        .unwrap();
 
         let expected2: Vec<Element> = (vec![
             vec![2, 9, 5, 7, 4, 3, 8, 6, 1],
@@ -195,8 +189,8 @@ pub mod brute_unit {
             vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
             vec![1, 5, 4, 9, 3, 8, 6, 2, 7],
         ])
-            .as_input()
-            .unwrap();
+        .as_input()
+        .unwrap();
 
         let res = Puzzle::new()
             .set_initial(example.as_input().unwrap())
@@ -224,7 +218,6 @@ pub mod brute_unit {
             vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
-
 
         let mut puz: Puzzle = Puzzle::new();
 
