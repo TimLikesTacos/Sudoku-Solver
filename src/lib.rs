@@ -379,6 +379,12 @@ mod tests {
         assert_eq!(iter.next().unwrap().num(), 7);
         assert_eq!(iter.next().unwrap().num(), 9);
         assert!(iter.next().is_none());
+        let iter1 = res.row_iter(0);
+        let iter2 = res.row_iter(6);
+        for (c1, c2) in iter1.zip(iter2){
+            assert_eq!(c1, c2);
+        }
+
     }
     #[test]
     fn col_iter_test() {

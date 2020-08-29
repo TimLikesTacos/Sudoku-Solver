@@ -119,9 +119,7 @@ impl BasicHumanMethods for Puzzle {
                     continue;
                 }
                 let index = func(iteration, i);
-                if index == 32 {
-                    dbg!(the_cells[i]);
-                }
+
                 let other_sets = the_cells.iter()
                     .enumerate()
                     .filter (|(step, _)| *step != i )
@@ -149,13 +147,15 @@ impl BasicHumanMethods for Puzzle {
                 let amount_to_skip = row * BOX_DIMEN;
                 let start_row_index = start_ind + row * MAX_NUM;
                 let start_col_index = index_to_col(start_ind);
+               //dbg!(&box_number, &row, &start_ind, &amount_to_skip, &start_row_index, &start_col_index);
 
                 // Get a set of what is in the 6 other cells in the box, compare it to the three in question for the row
                 let box_set = self
-                    .box_iter(start_of_box(box_number))
+                    .box_iter(start_ind)
                     .enumerate()
                     .filter(|(i,c)| (*i < amount_to_skip || *i >= (amount_to_skip + BOX_DIMEN)) && c.penciled().len() != 0 )
                     .fold(BTreeSet::new(), |acc, (_, s)| acc.union(&s.penciled()).cloned().collect::<BTreeSet<Element>>());
+
                 let row_set = self
                     .row_iter(start_row_index)
                     .skip(start_col_index)
@@ -167,39 +167,100 @@ impl BasicHumanMethods for Puzzle {
                 // Get difference between sets.  Any difference will be a locked candidate in a box and other elements in the row can
                 // have their possible values modified
                 let locked_cands_num = row_set.difference(&box_set).cloned().collect::<Vec<Element>>();
+
                 for num in locked_cands_num {
-                    let mut locked_cells = self
-                        .row_iter_mut(start_row_index)
+                    let locked_cells = self
+                        .row_iter(start_row_index)
                         .skip(start_col_index)
                         .enumerate()
                         .take_while(|(i, _)| *i < BOX_DIMEN)
                         .filter(|(_, c)| c.penciled().contains(&num))
-                        .collect::<Vec<(usize, &mut Cell)>>();
-                    for (i, _) in locked_cells {
-                        cand.push((i + start_row_index + start_col_index , num));
-                    }
-                    let mut affected_cells = self
+                        .map(|(i,_)| i)
+                        .collect::<Vec<usize>>();
+
+                    let affected_cells = self
                         .row_iter_mut(start_row_index)
                         .enumerate()
                         .filter (|(i, c)| (*i < start_col_index || *i >= start_col_index + BOX_DIMEN) && c.penciled().contains(&num))
                         .map (|(_, c)| c)
                         .collect::<Vec<&mut Cell>>();
 
+
+                    let locked_present = affected_cells.len() > 0;
                     for c in affected_cells {
                         c.remove_possible(num);
                     }
 
+                    if locked_present {
+                        for i in locked_cells {
+                            cand.push((i + start_row_index , num));
+                        }
+                    }
 
                 }
 
             }
 
-            /*
-            Same thing, but with the column in the box
-             */
-           
-            let box_iter = self.box_iter(start_of_box(box_number));
-            // Check if
+            for col in 0..BOX_DIMEN {
+                //let amount_to_skip = row * BOX_DIMEN;
+                let start_row_index = index_to_row(start_ind);
+                let start_col_index = start_ind + col;
+                //dbg!(&box_number, &row, &start_ind, &start_row_index, &start_col_index);
+
+                // Get a set of what is in the 6 other cells in the box, compare it to the three in question for the row
+                let box_set = self
+                    .box_iter(start_ind)
+                    .enumerate()
+                    .filter(|(i,c)| *i % BOX_DIMEN != col && c.penciled().len() != 0 )
+                    .fold(BTreeSet::new(), |acc, (_, s)| acc.union(&s.penciled()).cloned().collect::<BTreeSet<Element>>());
+                //dbg!(&box_set);
+                let col_set = self
+                    .col_iter(start_col_index)
+                    .skip(start_row_index)
+                    .enumerate()
+                    .filter(|(_, c)| c.penciled().len() != 0)
+                    .take_while(|(i, _)| *i < BOX_DIMEN)
+                    .fold (BTreeSet::new(), |acc, (_, s)| acc.union(&s.penciled()).cloned().collect::<BTreeSet<Element>>());
+                //dbg!(&col_set);
+                // Get difference between sets.  Any difference will be a locked candidate in a box and other elements in the row can
+                // have their possible values modified
+                let locked_cands_num = col_set.difference(&box_set).cloned().collect::<Vec<Element>>();
+
+                for num in locked_cands_num {
+                    let locked_cells = self
+                        .col_iter(start_col_index)
+                        .skip(start_row_index)
+                        .enumerate()
+                        .take_while(|(i, _)| *i < BOX_DIMEN)
+                        .filter(|(_, c)| c.penciled().contains(&num))
+                        .map(|(i,_)| i)
+                        .collect::<Vec<usize>>();
+                    // for i in &locked_cells {
+                    //     cand.push((i + start_row_index + start_col_index , num));
+                    // }
+                    let affected_cells = self
+                        .col_iter_mut(start_col_index)
+                        .enumerate()
+                        .filter (|(i, c)| (*i < start_row_index || *i >= start_row_index + BOX_DIMEN) && c.penciled().contains(&num))
+                        .map (|(_, c)| c)
+                        .collect::<Vec<&mut Cell>>();
+
+
+                    let locked_present = affected_cells.len() > 0;
+                    for c in affected_cells {
+                        c.remove_possible(num);
+                    }
+
+                    if locked_present {
+                        for i in locked_cells {
+                            cand.push((start_ind + col + i * MAX_NUM, num));
+                        }
+                    }
+
+                }
+
+            }
+
         }
 
         cand
@@ -619,27 +680,30 @@ mod human_method_tests {
         let str = "984........25...4...19.4..2..6.9723...36.2...2.9.3561.195768423427351896638..9751";
         puz.set_initial(str.as_input().unwrap());
         let res = puz.locked_candidates(true);
-        dbg!(&res);
+
         assert!(res.contains(&(get_cell(2,0), 5)));
         assert!(res.contains(&(get_cell(2,1), 5)));
         assert!(!puz.cells[get_cell(2, 6)].penciled().contains(&5));
 
+        let str = "34...6.7..8....93...2.3..6.....1.....9736485......2...............6.8.9....923785";
+
+        let mut puz = Puzzle::new();
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.locked_candidates(true);
+        assert!(res.contains(&(get_cell(6,3), 1)));
+        assert!(res.contains(&(get_cell(6,5), 1)));
+        assert!(!puz.cells[get_cell(6, 6)].penciled().contains(&1));
+
+        let str = "58.4.1.2994.2....12.15.94.....91...6.9.64.1...1.82.79...4192...1.9......82..5.91.";
+        let mut puz = Puzzle::new();
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.locked_candidates(true);
+        assert!(res.contains(&(55, 5)));
+        assert!(res.contains(&(64, 5)));
+        assert!(!puz.cells[get_cell(3, 1)].penciled().contains(&5));
 
     }
 
-    // #[test]
-    // fn single_poss_multiple () {
-    //     for _ in 0..1000 {
-    //         single_possibility_test();
-    //     }
-    // }
-    //
-    // #[test]
-    // fn single_poss_faster_multiple () {
-    //     for _ in 0..1000 {
-    //         single_possibility_faster_test();
-    //     }
-    // }
 
     #[test]
     fn diff_single_poss () {
@@ -734,7 +798,6 @@ mod human_method_tests {
             .unwrap();
 
         let res = puz.single_possibility_slower(true);
-        dbg!(&res);
 
         assert!(res.contains(&(get_cell(2, 6), 5)));
         assert!(res.contains(&(get_cell(5, 6), 8)));
@@ -868,7 +931,6 @@ mod human_method_tests {
         assert!(puz.cells[threefive].penciled().contains(&2));
         assert!(puz.cells[threefive].penciled().contains(&6));
         assert!(!puz.cells[threefive].penciled().contains(&1));
-        println!("{:#?}", puz);
 
 
     }
@@ -902,7 +964,6 @@ mod human_method_tests {
             })
         }
         let res = puz.brute_force_solve();
-        dbg!(res.len());
         assert_eq!(res.len(), 1);
 
     }
