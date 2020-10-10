@@ -1,6 +1,7 @@
 use crate::*;
 use std::collections::HashMap;
 
+
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
     /// related cells.  A single candidate is where only one value is possible in that cell.
@@ -34,7 +35,8 @@ pub trait BasicHumanMethods {
     /// single_candidate or single_possibility.   
     /// Returns a set containing the indicies in which belong to a x-uple.
     fn hidden_tuple(&mut self) -> BTreeSet<usize>;
-    fn locked_candidates (&mut self, fill: bool) -> Vec<(usize, Element)> ;
+    fn locked_candidates_pointing(&mut self, fill: bool) -> Vec<(usize, Element)> ;
+    fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)>;
 }
 
 impl BasicHumanMethods for Puzzle {
@@ -138,7 +140,75 @@ impl BasicHumanMethods for Puzzle {
         adds
     }
 
-    fn locked_candidates(&mut self, fill: bool) -> Vec<(usize, Element)> {
+    // If the only possiblities in a row or column are in the same block, these values can be removed within the block
+    fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)> {
+        let mut cand: Vec<(usize, Element)> = Vec::new();
+        // get the set of possiblities in a row not i
+        for box_number in 0..MAX_NUM {
+            let start_ind = start_of_box(box_number);
+            for row in 0..BOX_DIMEN {
+                let amount_to_skip = (box_number % BOX_DIMEN) * BOX_DIMEN;
+                let start_row_index = start_ind + row * MAX_NUM;
+                //let start_col_index = index_to_col(start_ind);
+
+                // Possible values in the row, but not the cells in that row in the box in question
+                let row_set = self
+                    .row_iter(start_row_index)
+                    .enumerate()
+                    .filter (|(i, _)| *i < amount_to_skip || *i >= amount_to_skip + BOX_DIMEN)
+                    .fold(BTreeSet::new(), |sets, (_, c)| sets.union(c.penciled()).cloned().collect::<BTreeSet<Element>>());
+
+                // Possible values of the cells in the row, in the box in question
+                let row_in_box_set = self
+                    .row_iter(start_row_index)
+                    .skip(amount_to_skip)
+                    .enumerate()
+                    .take_while(|(i, _)| *i < BOX_DIMEN)
+                    .fold(BTreeSet::new(), |sets, (_, c)| sets.union(c.penciled()).cloned().collect::<BTreeSet<Element>>());
+
+                // Difference between the possible values of the cells in the row in the box compared to the possible values
+                // in the row, outside the box.  Any values are locked candidates
+                let locked_cands = row_in_box_set.difference(&row_set).cloned().collect::<BTreeSet<Element>>();
+
+                //dbg!(&box_number, &row, &row_set, &row_in_box_set, &locked_cands);
+                let candidates = self.box_iter(box_number)
+                .skip(amount_to_skip)
+                .enumerate()
+                .take_while(|(i, _)|*i < BOX_DIMEN)
+                    .map (|(i, c)| (i + amount_to_skip, c))
+                .collect::<Vec<(usize, &Cell)>>();
+
+               // dbg!(&candidates.iter().map(|(i, _)| i).cloned().collect::<Vec<usize>>());
+                // Update the candidate list
+                for (ind, cell) in candidates {
+                    for value in  cell.penciled().intersection(&locked_cands) {
+                        cand.push((start_row_index + ind, *value));
+                    }
+                }
+                //dbg!( &cand);
+                let affected_cells = self.box_iter_mut(box_number)
+                    .enumerate()
+                    .filter (|(i, _)| *i < row * BOX_DIMEN || *i >= row * BOX_DIMEN + BOX_DIMEN)
+                    .map (|(_, c)| c)
+                    .collect::<Vec< &mut Cell>>();
+
+                // Clear possibilities from affected cells.
+                for cell in affected_cells {
+                    let vals = cell.penciled().intersection(&locked_cands).cloned().collect::<Vec<Element>>();
+                    for value in vals {
+                        cell.remove_possible(value);
+                    }
+                }
+
+
+            }
+        }
+        cand
+    }
+
+    // If the only possiblities in a box are in a row or column, these values can be removed from the rest
+    // of the block / column
+    fn locked_candidates_pointing(&mut self, fill: bool) -> Vec<(usize, Element)> {
         let mut cand: Vec<(usize, Element)> = Vec::new();
 
         for box_number in 0..MAX_NUM {
@@ -679,7 +749,7 @@ mod human_method_tests {
         let mut puz = Puzzle::new();
         let str = "984........25...4...19.4..2..6.9723...36.2...2.9.3561.195768423427351896638..9751";
         puz.set_initial(str.as_input().unwrap());
-        let res = puz.locked_candidates(true);
+        let res = puz.locked_candidates_pointing(true);
 
         assert!(res.contains(&(get_cell(2,0), 5)));
         assert!(res.contains(&(get_cell(2,1), 5)));
@@ -689,7 +759,7 @@ mod human_method_tests {
 
         let mut puz = Puzzle::new();
         puz.set_initial(str.as_input().unwrap());
-        let res = puz.locked_candidates(true);
+        let res = puz.locked_candidates_pointing(true);
         assert!(res.contains(&(get_cell(6,3), 1)));
         assert!(res.contains(&(get_cell(6,5), 1)));
         assert!(!puz.cells[get_cell(6, 6)].penciled().contains(&1));
@@ -697,13 +767,38 @@ mod human_method_tests {
         let str = "58.4.1.2994.2....12.15.94.....91...6.9.64.1...1.82.79...4192...1.9......82..5.91.";
         let mut puz = Puzzle::new();
         puz.set_initial(str.as_input().unwrap());
-        let res = puz.locked_candidates(true);
+        let res = puz.locked_candidates_pointing(true);
         assert!(res.contains(&(55, 5)));
         assert!(res.contains(&(64, 5)));
         assert!(!puz.cells[get_cell(3, 1)].penciled().contains(&5));
 
     }
 
+    #[test]
+    fn locked_candidate_claiming_test () {
+        let str = "318..54.6...6.381...6.8.5.3864952137123476958795318264.3.5..78......73.5....39641";
+        let mut puz = Puzzle::new();
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.locked_candidates_claiming(true);
+        dbg!(&res);
+        assert!(res.contains(&(10, 7)));
+        assert!(res.contains(&(11, 7)));
+        assert!(!res.contains(&(19, 7)));
+        assert!(puz.cells[19].penciled().contains(&7));
+
+        let str = "762..8..198......615.....87478..3169526..98733198..425835..1692297685314641932758";
+        let mut puz = Puzzle::new();
+        puz.set_initial(str.as_input().unwrap());
+        let res = puz.locked_candidates_claiming(true);
+        assert!(res.contains(&(15, 4)));
+        assert!(res.contains(&(24,4)));
+        assert!(!puz.cells[3].penciled().contains(&4));
+        assert!(!puz.cells[13].penciled().contains(&4));
+        assert!(!puz.cells[21].penciled().contains(&4));
+
+
+
+    }
 
     #[test]
     fn diff_single_poss () {
