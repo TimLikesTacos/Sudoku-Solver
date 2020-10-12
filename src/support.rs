@@ -1,4 +1,5 @@
 use crate::*;
+use crate::constants::*;
 
 // convert 2-D coordinate to 1-D
 pub fn get_cell(row: usize, col: usize) -> usize {

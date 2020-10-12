@@ -1,44 +1,45 @@
 use crate::flag::{Flag, FlagTrait};
 
 
-pub struct Square {
+pub struct Square<F: FlagTrait> {
     value: u8,
     fixed: bool,
-    pencil: Flag<u16>
+    pencil: F,
 }
 
-pub trait  SquareTrait<T>
-    where T: FlagTrait {
+pub trait  SquareTrait {
     type Value;
+    type FlagType;
 
     fn setv (&mut self, v: Self::Value);
-    fn setp (&mut self, p: T);
+    fn setp (&mut self, p: Self::FlagType);
     fn getv (&self) -> Self::Value;
-    fn getp (&self) -> T;
-    fn getp_mut (&mut self) -> &mut T;
+    fn getp (&self) -> &Self::FlagType;
+    fn getp_mut (&mut self) -> &mut Self::FlagType;
     fn new (v: Self::Value, fix: bool) -> Self;
 }
 
-impl SquareTrait<Flag<u16>> for Square {
+impl <F: FlagTrait + Default> SquareTrait for Square<F> {
     type Value = u8;
+    type FlagType = F;
 
     fn setv (&mut self, v: u8) {
         self.value = v;
     }
 
-    fn setp (&mut self, p: Flag<u16>) {
+    fn setp (&mut self, p: Self::FlagType) {
         self.pencil = p;
     }
 
     fn getv (&self) -> Self::Value {self.value}
-    fn getp (&self) -> Flag<u16> {self.pencil}
-    fn getp_mut (&mut self) -> &mut Flag<u16> {&mut self.pencil}
+    fn getp (&self) -> &Self::FlagType {&self.pencil}
+    fn getp_mut (&mut self) -> &mut Self::FlagType {&mut self.pencil}
 
-    fn new (v: u8, fix: bool) -> Square{
+    fn new (v: u8, fix: bool) -> Square<F>{
         Square {
             value: v,
             fixed: fix,
-            pencil: Flag::default(),
+            pencil: F::default(),
         }
     }
 
@@ -51,8 +52,8 @@ mod square_tests {
 
     #[test]
     fn new_test () {
-        let s = Square::new(5, true);
-        let t = Square::new(7, false);
+        let s: Square<Flag<u16>> = Square::new(5, true);
+        let t: Square<Flag<u16>> = Square::new(7, false);
         assert_eq!(s.pencil.count(), 0);
         assert_eq!(s.value, 5);
         assert_eq!(s.fixed, true);
@@ -63,24 +64,25 @@ mod square_tests {
 
     #[test]
     fn setv_test () {
-        let mut s = Square::new(0, false);
+        let mut s: Square<Flag<u16>> = Square::new(0, false);
         s.setv(4);
         assert_eq!(s.getv(), 4);
     }
 
     #[test]
     fn setp_test() {
-        let mut s = Square::new(0, false);
+        let mut s: Square<Flag<u16>> = Square::new(0, false);
         s.setp(Flag::from(0b1110));
-        assert_eq!(s.getp(), Flag::from(0b11110));
+        assert_eq!(*s.getp(), Flag::from(0b1110));
     }
 
     #[test]
     fn mutp_test() {
-        let mut s = Square::new(0, false);
+        let mut s: Square<Flag<u16>> = Square::new(0, false);
+        s.setp(Flag::from(0b1110));
         let mut p = s.getp_mut();
-        *p = p.remove_flag(Flag::from(10000010));
-        assert_eq!(s.getp(), Flag::from(1100));
+        *p = p.remove_flag(Flag::from(0b10000010));
+        assert_eq!(*s.getp(), Flag::from(0b1100));
 
     }
 }

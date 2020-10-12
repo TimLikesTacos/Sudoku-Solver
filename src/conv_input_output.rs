@@ -1,6 +1,7 @@
 use crate::errors::SudError;
 use crate::errors::SudError::OutputParse;
-use crate::{Element, MAX_NUM, NUM_CELLS};
+use crate::{Element};
+use crate::constants::*;
 
 /// This is used to generate the vector to initially set the puzzle, along with convert the vector to desired output
 pub trait PuzInput {
