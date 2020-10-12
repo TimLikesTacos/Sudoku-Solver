@@ -3,6 +3,8 @@ mod conv_input_output;
 mod errors;
 mod human_calcs;
 mod support;
+mod flag;
+mod square;
 
 pub use crate::brute::BruteForce;
 pub use crate::brute::*;
@@ -111,6 +113,7 @@ impl Cell {
         self.penciled.iter()
     }
 }
+
 
 /// Contains a row dominant 1-D vector for all the cells in the puzzle
 #[derive(Clone, Debug, Default, PartialEq)]
