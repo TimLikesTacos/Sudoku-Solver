@@ -1,4 +1,4 @@
-
+use crate::constants::MAX_NUM;
 
 // The Cell struct contains the number, boolean if it is fixed, and functions to incremement
 type Element = u16;
@@ -23,24 +23,70 @@ impl Default for CellP {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Flag<T> {
+pub struct Flag<T>
+where T: std::marker::Sized{
     flags: T,
     count: u8,
 }
 
-pub trait  FlagTrait {
+// pub trait FlagConvert {
+//     fn convert_from(v: u32) -> Self;
+//     fn convert_to(&self) -> Result<u32, String>;
+// }
+
+pub trait  FlagTrait
+where Self: std::marker::Sized{
+
+    type Element;
+
+    /// Contains all 1's in the size from 1 to MAX_NUM. Used for bitwise negation.
+    const NEG: Self::Element;
+
     fn add_flag (&self, v:Self) -> Self;
-    fn add_num (&mut self, v: usize) -> Self;
+    fn add_num (&mut self, v: Self::Element) -> Self;
     fn remove_flag (&mut self, v:Self) -> Self;
-    fn remove_num (&mut self, v: usize) -> Self;
+    fn remove_num (&mut self, v: Self::Element) -> Self;
     fn clear (&mut self);
-    fn new (v: usize) -> Self;
+    fn new (v: Self::Element) -> Self;
     fn count (&self) -> u8;
     fn bits () -> u8;
+    fn merge (slice: &[Self] ) -> Self;
+    fn is_single(&self) -> bool;
+    fn set_initial(present_values: Self) -> Self;
 }
+
+// impl FlagConvert for Flag <u16> {
+//     fn convert_from (v:u32) -> Flag<u16> {
+//         if v == 0 {
+//             Flag {
+//                 flags: 0,
+//                 count: 0,
+//             }
+//         } else {
+//             Flag {
+//                 flags: 1 << (v - 1),
+//                 count: 1,
+//             }
+//         }
+//     }
+//
+//     fn convert_to (&self) -> Result<u32, String> {
+//         if self.count != 1 {
+//             return Err(String::from("Multiple flags, could not convert to single integer"));
+//         } else {
+//             Ok(self.count.trailing_zeros() + 1)
+//         }
+//     }
+// }
+/**
+todo: macro-ize
+**/
 
 impl FlagTrait for Flag<u16> {
 
+    type Element = u16;
+
+    const NEG: u16 = 0b111111111;
 
     fn add_flag (&self, v: Flag<u16>) -> Self {
         let mut f = self.flags;
@@ -58,8 +104,8 @@ impl FlagTrait for Flag<u16> {
         }
     }
 
-    fn add_num (&mut self, v: usize) -> Self {
-        let add = Flag::new(v).flags;
+    fn add_num (&mut self, v: Self::Element) -> Self {
+        let add = Flag::from(v as usize).flags;
         if add & self.flags != add {
             self.count += 1;
             self.flags |= add;
@@ -79,8 +125,8 @@ impl FlagTrait for Flag<u16> {
         self.clone()
     }
 
-    fn remove_num (&mut self, v: usize) -> Self {
-        let sub = Flag::from(v).flags;
+    fn remove_num (&mut self, v: Self::Element) -> Self {
+        let sub = Flag::from(v as usize).flags;
         if self.flags & sub == sub {
             self.flags ^= sub;
             self.count -= 1;
@@ -93,17 +139,10 @@ impl FlagTrait for Flag<u16> {
         self.count = 0;
     }
 
-    fn new (v: usize) -> Self {
-        if v == 0 {
-            Flag {
-                flags: 0,
-                count: 0,
-            }
-        } else {
-            Flag {
-                flags: 1 << (v - 1),
-                count: 1,
-            }
+    fn new (v: Self::Element) -> Self {
+        Flag {
+            flags: v,
+            count: v.count_ones() as u8
         }
     }
 
@@ -111,6 +150,24 @@ impl FlagTrait for Flag<u16> {
 
     fn bits () -> u8 {
         std::mem::size_of::<u16>() as u8 * 8
+    }
+
+    fn merge (slice: &[Self]) -> Self {
+        // Start with 0, bitwise OR each flags value in slice
+        let flags:u16 = slice.iter().fold(0, |acc, x| acc | x.flags );
+        Flag::new(flags)
+    }
+
+    fn is_single (&self) -> bool {
+        if self.count == 1 {
+            true
+        } else {
+            false
+        }
+    }
+
+    fn set_initial(present_values: Self) -> Self {
+        Self::new(present_values.flags ^ Self::NEG)
     }
 }
 
@@ -128,26 +185,39 @@ todo: macro-ize this to allow for different primitive integers
 impl From<usize> for Flag<u16>
  {
     fn from (item: usize) -> Flag<u16> {
-        Flag {
-            flags: item as u16,
-            count: item.count_ones() as u8,
+        if item == 0 {
+            Flag {
+                flags: 0,
+                count: 0,
+            }
+        } else {
+            Flag {
+                flags: 1 << (item - 1),
+                count: 1,
+            }
         }
     }
 }
 
 impl From<Flag<u16>> for usize {
     fn from (item: Flag<u16>) -> usize {
-        let mut v: u16 = item.flags;
-        let mut num: u16 = 0;
-        let mut place = 1;
-        while v > 0 {
-            if v & 1 > 0 {
-                num += place;
-            }
-            v >>= 1;
-            place += 1;
+        if item.count != 1 {
+            0
+        } else {
+            (item.flags.trailing_zeros() + 1) as usize
         }
-        num as usize
+
+        // let mut v: u16 = item.flags;
+        // let mut num: u16 = 0;
+        // let mut place = 1;
+        // while v > 0 {
+        //     if v & 1 > 0 {
+        //         num += place;
+        //     }
+        //     v >>= 1;
+        //     place += 1;
+        // }
+        // num as usize
     }
 }
 
@@ -159,38 +229,36 @@ mod flag_tests {
     #[test]
     fn set_test() {
         let  t1: Flag<u16> = Flag::new(0);
-        dbg!(&t1);
         let mut t1 = t1.add_flag(2.into());
-        dbg!(&t1);
-        dbg!(usize::from(t1));
+
         assert_eq!(usize::from(t1), 2);
         t1 = t1.add_num(8);
         dbg!(&t1);
-        assert_eq!(usize::from(t1), 10);
+        assert_eq!(t1.flags, 0b10000010);
     }
 
     #[test]
     fn remove_test () {
-        let mut t1 = Flag::from(0b10000000);
-        t1 = t1.add_flag(Flag::from(0b1000));
+        let mut t1 = Flag::from(8);
+        t1 = t1.add_flag(Flag::from(4));
         assert_eq!(t1.count, 2);
         assert_eq!(t1.flags, 0b10001000);
-        t1.remove_flag(Flag::from(10000000));
+        t1.remove_flag(Flag::from(8));
         assert_eq!(t1.flags, 0b1000);
         assert_eq!(t1.count, 1);
         t1.remove_num(1);
         assert_eq!(t1.count, 1);
         assert_eq!(t1.flags, 0b1000);
-        t1.remove_flag(Flag::from(0b1000));
+        t1.remove_flag(Flag::from(4));
         assert!(t1.count == 0);
         assert!(t1.flags == 0);
 
-        let mut t1 = Flag::new(1);
-        let mut t2 = Flag::new(4);
+        let mut t1 = Flag::from(1);
+        let mut t2 = Flag::from(4);
         t1 = t1.add_flag(t2);
         assert_eq!(t1.flags, 0b1001);
         assert_eq!(t1.count, 2);
-        let mut t3 = Flag::from(0b100000000);
+        let mut t3 = Flag::from(9);
         assert_eq!(t3.flags, 0b100000000);
         t3 = t3.add_flag(t1);
         assert_eq!(t3.flags, 0b100001001);
@@ -206,7 +274,7 @@ mod flag_tests {
     #[test]
     fn clear_test () {
         let mut t1 = Flag::new(0b1100);
-        assert_eq!(t1.count(), 1);
+        assert_eq!(t1.count(), 2);
         t1.clear();
         assert_eq!(t1, 0.into());
         assert_eq!(t1.count(), 0);
@@ -214,9 +282,34 @@ mod flag_tests {
 
     #[test]
     fn from_into() {
-        let mut t1:Flag<u16> = Flag::from(0b1000);
+        let mut t1:Flag<u16> = Flag::from(4);
         assert_eq!(t1.flags, 0b1000);
-        assert_eq!(t1.add_flag(Flag::from(0b10000000)).flags, 0b10001000);
+        assert_eq!(t1.add_flag(Flag::from(8)).flags, 0b10001000);
+
+    }
+
+    #[test]
+    fn merge_test() {
+        let flags = [Flag::new(0b10000), Flag::new(0b00000), Flag::new(0b00100), Flag::new(0b10010), Flag::new(0b00001)];
+        let res = Flag::merge (&flags[2..]);
+        assert_eq!(res.flags, 0b10111);
+        assert_eq!(res.count, 4);
+        let res = Flag::merge (&flags [0..=2]);
+        assert_eq!(res.flags, 0b10100);
+        assert_eq!(res.count, 2);
+    }
+
+    #[test]
+    fn flag16neg () {
+        let res: u16 = Flag::NEG;
+        assert_eq!(res, 0b111111111);
+    }
+
+    #[test]
+    fn get_initial_test() {
+        let a = Flag::new(0b0101);
+        let res = Flag::set_initial(a);
+        assert_eq!(res.flags, 0b111111010);
 
     }
 }
