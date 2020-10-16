@@ -1,5 +1,5 @@
-use crate::*;
 use crate::constants::*;
+use crate::*;
 
 // convert 2-D coordinate to 1-D
 pub fn get_cell(row: usize, col: usize) -> usize {
@@ -42,8 +42,6 @@ pub fn index_from_row(row: usize, index: usize) -> usize {
 pub fn index_from_col(col: usize, index: usize) -> usize {
     index * MAX_NUM + col
 }
-
-
 
 #[cfg(test)]
 mod support_tests {

@@ -2,7 +2,7 @@ use crate::flag::*;
 use std::sync::mpsc::TryRecvError;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq)]
-pub struct FlagSquare<V, F:FlagTrait> {
+pub struct FlagSquare<V, F: FlagTrait> {
     value: V,
     fixed: bool,
     pencil: F,
@@ -13,64 +13,75 @@ pub struct SimpleSquare<V> {
     value: V,
 }
 
-
-
-
-pub trait SquareTrait
-{
+pub trait SquareTrait: Default + Clone + PartialEq {
     type Value: PartialEq;
-    fn setv (&mut self, v: Self::Value);
-    fn getv (&self) -> Self::Value;
+    fn setv(&mut self, v: Self::Value);
+    fn getv(&self) -> Self::Value;
+    fn input_convert(int: u8) -> Self::Value;
 }
 
-impl <V: Clone + PartialEq, F: FlagTrait> SquareTrait for FlagSquare<V, F> {
+impl<V: Clone + PartialEq + From<u8> + Default, F: FlagTrait + Default + Clone> SquareTrait
+    for FlagSquare<V, F>
+{
     type Value = V;
 
-    fn setv (&mut self, v: Self::Value) {
+    fn setv(&mut self, v: Self::Value) {
         self.value = v;
     }
-    fn getv (&self) -> Self::Value {self.value.clone()}
+    fn getv(&self) -> Self::Value {
+        self.value.clone()
+    }
+    fn input_convert(int: u8) -> Self::Value {
+        V::from(int)
+    }
 }
 
-impl <V: Clone + PartialEq> SquareTrait for SimpleSquare<V> {
-
+impl<V: Clone + PartialEq + From<u8> + Default> SquareTrait for SimpleSquare<V> {
     type Value = V;
 
-    fn setv (&mut self, v: Self::Value) {
+    fn setv(&mut self, v: Self::Value) {
         self.value = v;
     }
-    fn getv (&self) -> Self::Value {self.value.clone()}
+    fn getv(&self) -> Self::Value {
+        self.value.clone()
+    }
+    fn input_convert(int: u8) -> Self::Value {
+        V::from(int)
+    }
 }
 
-
-pub trait  SquareFlagTrait: SquareTrait {
-
+pub trait SquareFlagTrait: SquareTrait {
     type FlagType;
 
-    fn fixed (&self) -> bool;
-    fn setp (&mut self, p: Self::FlagType);
-    fn getp (&self) -> &Self::FlagType;
-    fn getp_mut (&mut self) -> &mut Self::FlagType;
-    fn new (v: Self::Value, fix: bool) -> Self;
-    fn initial_setp (&mut self, slice: &[Self::FlagType]);
+    fn fixed(&self) -> bool;
+    fn setp(&mut self, p: Self::FlagType);
+    fn getp(&self) -> &Self::FlagType;
+    fn getp_mut(&mut self) -> &mut Self::FlagType;
+    fn new(v: Self::Value, fix: bool) -> Self;
+    fn initial_setp(&mut self, slice: &[Self::FlagType]);
 }
 
-
-impl <V: Clone + PartialEq, F> SquareFlagTrait for FlagSquare <V, F>
-where F: FlagTrait + Default
+impl<V: Clone + PartialEq + From<u8> + Default, F: Clone> SquareFlagTrait for FlagSquare<V, F>
+where
+    F: FlagTrait + Default,
 {
-
     type FlagType = F;
 
-    fn fixed (&self) -> bool {self.fixed}
-    fn getp (&self) -> &Self::FlagType {&self.pencil}
-    fn getp_mut (&mut self) -> &mut Self::FlagType {&mut self.pencil}
+    fn fixed(&self) -> bool {
+        self.fixed
+    }
+    fn getp(&self) -> &Self::FlagType {
+        &self.pencil
+    }
+    fn getp_mut(&mut self) -> &mut Self::FlagType {
+        &mut self.pencil
+    }
 
-    fn setp (&mut self, p: Self::FlagType) {
+    fn setp(&mut self, p: Self::FlagType) {
         self.pencil = p;
     }
 
-    fn new (v: V, fix: bool) -> FlagSquare<V, F>{
+    fn new(v: V, fix: bool) -> FlagSquare<V, F> {
         FlagSquare {
             value: v,
             fixed: fix,
@@ -78,18 +89,17 @@ where F: FlagTrait + Default
         }
     }
 
-    fn initial_setp (&mut self, slice: &[F]) {
+    fn initial_setp(&mut self, slice: &[F]) {
         let values = F::merge(slice);
         self.pencil = F::set_initial(values);
     }
-
 }
 
 ///* `From` is implemented for FlagSquare to SimpleSquare, but not the other way as data would
 /// be lost for the flag values.  Keep this in mind when using other functions that have `from()`
 /// for different square functions *///
-impl <V: Clone, F: FlagTrait> From<&FlagSquare<V, F>> for SimpleSquare<V> {
-    fn from (other: &FlagSquare<V, F>) -> SimpleSquare<V> {
+impl<V: Clone, F: FlagTrait> From<&FlagSquare<V, F>> for SimpleSquare<V> {
+    fn from(other: &FlagSquare<V, F>) -> SimpleSquare<V> {
         SimpleSquare {
             value: other.value.clone(),
         }
@@ -102,7 +112,7 @@ mod square_tests {
     use crate::flag::FlagTrait;
 
     #[test]
-    fn new_test () {
+    fn new_test() {
         let s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(5).get_flags(), true);
         let t: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(7).get_flags(), false);
         assert_eq!(s.pencil.count(), 0);
@@ -114,7 +124,7 @@ mod square_tests {
     }
 
     #[test]
-    fn setv_test () {
+    fn setv_test() {
         let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0).get_flags(), false);
         s.setv(Flag::from(4).get_flags());
         assert_eq!(usize::from(s.getv()), 2usize.pow(4 - 1));
@@ -134,6 +144,5 @@ mod square_tests {
         let mut p = s.getp_mut();
         *p = p.remove_flag(Flag::new(0b10000010));
         assert_eq!(*s.getp(), Flag::new(0b1100));
-
     }
 }

@@ -1,13 +1,16 @@
 // mod brute;
 // mod conv_input_output;
-// mod errors;
+mod errors;
 // mod human_calcs;
-mod support;
-mod flag;
 mod box_iter;
 mod constants;
-mod square;
+mod conv_input_output;
+mod flag;
 mod grid;
+mod puzzle;
+mod square;
+mod support;
+
 // mod puzzle;
 //mod conv_input_output;
 //
