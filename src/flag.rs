@@ -1,53 +1,27 @@
 use crate::constants::MAX_NUM;
 
-// The Cell struct contains the number, boolean if it is fixed, and functions to incremement
-type Element = u16;
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct CellP {
-    num: Element,
-    fixed: bool,
-    pencil: u16,
-    pcount: Element,
-}
-
-impl Default for CellP {
-    fn default() -> Self {
-        CellP {
-            num: 0,
-            fixed: false,
-            pencil: 0,
-            pcount: 0,
-        }
-    }
-}
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Flag<T>
-where T: std::marker::Sized{
+{
     flags: T,
     count: u8,
 }
 
-// pub trait FlagConvert {
-//     fn convert_from(v: u32) -> Self;
-//     fn convert_to(&self) -> Result<u32, String>;
-// }
-
-pub trait  FlagTrait
-where Self: std::marker::Sized{
-
-    type Element;
-
+pub trait FlagTrait
+where Self: Sized
+{
+    type IntForFlag;
     /// Contains all 1's in the size from 1 to MAX_NUM. Used for bitwise negation.
-    const NEG: Self::Element;
+    const NEG: Self::IntForFlag;
 
+    fn get_flags(&self) -> Self::IntForFlag;
     fn add_flag (&self, v:Self) -> Self;
-    fn add_num (&mut self, v: Self::Element) -> Self;
+    fn add_num (&mut self, v: Self::IntForFlag) -> Self;
     fn remove_flag (&mut self, v:Self) -> Self;
-    fn remove_num (&mut self, v: Self::Element) -> Self;
+    fn remove_num (&mut self, v: Self::IntForFlag) -> Self;
     fn clear (&mut self);
-    fn new (v: Self::Element) -> Self;
+    fn new (v: Self::IntForFlag) -> Self;
     fn count (&self) -> u8;
     fn bits () -> u8;
     fn merge (slice: &[Self] ) -> Self;
@@ -55,38 +29,16 @@ where Self: std::marker::Sized{
     fn set_initial(present_values: Self) -> Self;
 }
 
-// impl FlagConvert for Flag <u16> {
-//     fn convert_from (v:u32) -> Flag<u16> {
-//         if v == 0 {
-//             Flag {
-//                 flags: 0,
-//                 count: 0,
-//             }
-//         } else {
-//             Flag {
-//                 flags: 1 << (v - 1),
-//                 count: 1,
-//             }
-//         }
-//     }
-//
-//     fn convert_to (&self) -> Result<u32, String> {
-//         if self.count != 1 {
-//             return Err(String::from("Multiple flags, could not convert to single integer"));
-//         } else {
-//             Ok(self.count.trailing_zeros() + 1)
-//         }
-//     }
-// }
 /**
 todo: macro-ize
 **/
 
 impl FlagTrait for Flag<u16> {
 
-    type Element = u16;
-
+    type IntForFlag = u16;
     const NEG: u16 = 0b111111111;
+
+    fn get_flags (&self) -> Self::IntForFlag {self.flags}
 
     fn add_flag (&self, v: Flag<u16>) -> Self {
         let mut f = self.flags;
@@ -104,7 +56,7 @@ impl FlagTrait for Flag<u16> {
         }
     }
 
-    fn add_num (&mut self, v: Self::Element) -> Self {
+    fn add_num (&mut self, v: u16) -> Self {
         let add = Flag::from(v as usize).flags;
         if add & self.flags != add {
             self.count += 1;
@@ -125,7 +77,7 @@ impl FlagTrait for Flag<u16> {
         self.clone()
     }
 
-    fn remove_num (&mut self, v: Self::Element) -> Self {
+    fn remove_num (&mut self, v: u16) -> Self {
         let sub = Flag::from(v as usize).flags;
         if self.flags & sub == sub {
             self.flags ^= sub;
@@ -139,7 +91,7 @@ impl FlagTrait for Flag<u16> {
         self.count = 0;
     }
 
-    fn new (v: Self::Element) -> Self {
+    fn new (v: u16) -> Self {
         Flag {
             flags: v,
             count: v.count_ones() as u8
@@ -154,7 +106,7 @@ impl FlagTrait for Flag<u16> {
 
     fn merge (slice: &[Self]) -> Self {
         // Start with 0, bitwise OR each flags value in slice
-        let flags:u16 = slice.iter().fold(0, |acc, x| acc | x.flags );
+        let flags: u16 = slice.iter().fold(0, |acc, x| acc | x.flags );
         Flag::new(flags)
     }
 
