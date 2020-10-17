@@ -1,4 +1,5 @@
 use crate::constants::MAX_NUM;
+use std::convert::TryFrom;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Flag<T> {
@@ -169,6 +170,33 @@ impl From<Flag<u16>> for usize {
     }
 }
 
+impl From<u16> for Flag<u16> {
+    fn from(item: u16) -> Flag<u16> {
+        if item == 0 {
+            Flag { flags: 0, count: 0 }
+        } else {
+            Flag {
+                flags: 1 << (item - 1),
+                count: 1,
+            }
+        }
+    }
+}
+
+impl From<Flag<u16>> for u16 {
+    fn from(item: Flag<u16>) -> u16 {
+        if item.count != 1 {
+            0
+        } else {
+            /*
+            todo: proper error handling
+             */
+            u16::try_from(item.flags.trailing_zeros() + 1).unwrap()
+        }
+
+    }
+}
+
 #[cfg(test)]
 mod flag_tests {
     use super::*;
@@ -176,7 +204,7 @@ mod flag_tests {
     #[test]
     fn set_test() {
         let t1: Flag<u16> = Flag::new(0);
-        let mut t1 = t1.add_flag(2.into());
+        let mut t1 = t1.add_flag(2usize.into());
 
         assert_eq!(usize::from(t1), 2);
         t1 = t1.add_num(8);
@@ -186,26 +214,26 @@ mod flag_tests {
 
     #[test]
     fn remove_test() {
-        let mut t1 = Flag::from(8);
-        t1 = t1.add_flag(Flag::from(4));
+        let mut t1 = Flag::from(8usize);
+        t1 = t1.add_flag(Flag::from(4usize));
         assert_eq!(t1.count, 2);
         assert_eq!(t1.flags, 0b10001000);
-        t1.remove_flag(Flag::from(8));
+        t1.remove_flag(Flag::from(8usize));
         assert_eq!(t1.flags, 0b1000);
         assert_eq!(t1.count, 1);
         t1.remove_num(1);
         assert_eq!(t1.count, 1);
         assert_eq!(t1.flags, 0b1000);
-        t1.remove_flag(Flag::from(4));
+        t1.remove_flag(Flag::from(4usize));
         assert!(t1.count == 0);
         assert!(t1.flags == 0);
 
-        let mut t1 = Flag::from(1);
-        let mut t2 = Flag::from(4);
+        let mut t1 = Flag::from(1usize);
+        let mut t2 = Flag::from(4usize);
         t1 = t1.add_flag(t2);
         assert_eq!(t1.flags, 0b1001);
         assert_eq!(t1.count, 2);
-        let mut t3 = Flag::from(9);
+        let mut t3 = Flag::from(9usize);
         assert_eq!(t3.flags, 0b100000000);
         t3 = t3.add_flag(t1);
         assert_eq!(t3.flags, 0b100001001);
@@ -223,15 +251,15 @@ mod flag_tests {
         let mut t1 = Flag::new(0b1100);
         assert_eq!(t1.count(), 2);
         t1.clear();
-        assert_eq!(t1, 0.into());
+        assert_eq!(t1, 0usize.into());
         assert_eq!(t1.count(), 0);
     }
 
     #[test]
     fn from_into() {
-        let mut t1: Flag<u16> = Flag::from(4);
+        let mut t1: Flag<u16> = Flag::from(4usize);
         assert_eq!(t1.flags, 0b1000);
-        assert_eq!(t1.add_flag(Flag::from(8)).flags, 0b10001000);
+        assert_eq!(t1.add_flag(Flag::from(8usize)).flags, 0b10001000);
     }
 
     #[test]

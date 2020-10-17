@@ -13,11 +13,23 @@ pub struct SimpleSquare<V> {
     value: V,
 }
 
+impl <V: PartialEq, F: FlagTrait> PartialEq<FlagSquare<V, F>> for SimpleSquare<V> {
+    fn eq(&self, other: &FlagSquare<V, F>) -> bool {
+        self.value == other.value
+    }
+}
+
+impl <V: PartialEq, F: FlagTrait> PartialEq<SimpleSquare<V>> for FlagSquare<V, F> {
+    fn eq(&self, other: &SimpleSquare<V>) -> bool {
+        self.value == other.value
+    }
+}
 pub trait SquareTrait: Default + Clone + PartialEq {
     type Value: PartialEq;
     fn setv(&mut self, v: Self::Value);
     fn getv(&self) -> Self::Value;
     fn input_convert(int: u8) -> Self::Value;
+    fn has_flags() -> bool;
 }
 
 impl<V: Clone + PartialEq + From<u8> + Default, F: FlagTrait + Default + Clone> SquareTrait
@@ -34,6 +46,7 @@ impl<V: Clone + PartialEq + From<u8> + Default, F: FlagTrait + Default + Clone> 
     fn input_convert(int: u8) -> Self::Value {
         V::from(int)
     }
+    fn has_flags() -> bool {true}
 }
 
 impl<V: Clone + PartialEq + From<u8> + Default> SquareTrait for SimpleSquare<V> {
@@ -48,9 +61,10 @@ impl<V: Clone + PartialEq + From<u8> + Default> SquareTrait for SimpleSquare<V> 
     fn input_convert(int: u8) -> Self::Value {
         V::from(int)
     }
+    fn has_flags() -> bool {false}
 }
 
-pub trait SquareFlagTrait: SquareTrait {
+pub trait  SquareFlagTrait: SquareTrait {
     type FlagType;
 
     fn fixed(&self) -> bool;
@@ -58,10 +72,10 @@ pub trait SquareFlagTrait: SquareTrait {
     fn getp(&self) -> &Self::FlagType;
     fn getp_mut(&mut self) -> &mut Self::FlagType;
     fn new(v: Self::Value, fix: bool) -> Self;
-    fn initial_setp(&mut self, slice: &[Self::FlagType]);
+    fn initial_setp(&mut self, slice: & [Self::Value]);
 }
 
-impl<V: Clone + PartialEq + From<u8> + Default, F: Clone> SquareFlagTrait for FlagSquare<V, F>
+impl<V: Clone + PartialEq + From<u8> + Default, F: Clone + From<V>> SquareFlagTrait for FlagSquare<V, F>
 where
     F: FlagTrait + Default,
 {
@@ -89,8 +103,9 @@ where
         }
     }
 
-    fn initial_setp(&mut self, slice: &[F]) {
-        let values = F::merge(slice);
+    fn initial_setp(&mut self, slice: & [V]) {
+        let change_type = slice.iter().fold(Vec::new(),|mut acc, x:& V| {acc.push(<F>::from(x.clone())); acc});
+        let values = F::merge(&change_type);
         self.pencil = F::set_initial(values);
     }
 }
@@ -106,6 +121,9 @@ impl<V: Clone, F: FlagTrait> From<&FlagSquare<V, F>> for SimpleSquare<V> {
     }
 }
 
+// impl<V:Clone, F: FlagTrait> From <&SimpleSquare<V>> for FlagSquare<V, F> {
+//
+// }
 #[cfg(test)]
 mod square_tests {
     use super::*;
@@ -113,8 +131,8 @@ mod square_tests {
 
     #[test]
     fn new_test() {
-        let s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(5).get_flags(), true);
-        let t: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(7).get_flags(), false);
+        let s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(5usize).get_flags(), true);
+        let t: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(7usize).get_flags(), false);
         assert_eq!(s.pencil.count(), 0);
         assert_eq!(usize::from(s.value), 2usize.pow(5 - 1));
         assert_eq!(s.fixed, true);
@@ -125,21 +143,21 @@ mod square_tests {
 
     #[test]
     fn setv_test() {
-        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0).get_flags(), false);
-        s.setv(Flag::from(4).get_flags());
+        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0usize).get_flags(), false);
+        s.setv(Flag::from(4usize).get_flags());
         assert_eq!(usize::from(s.getv()), 2usize.pow(4 - 1));
     }
 
     #[test]
     fn setp_test() {
-        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0).get_flags(), false);
-        s.setp(Flag::from(0b1110));
-        assert_eq!(*s.getp(), Flag::from(0b1110));
+        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0usize).get_flags(), false);
+        s.setp(Flag::from(0b1110usize));
+        assert_eq!(*s.getp(), Flag::from(0b1110usize));
     }
 
     #[test]
     fn mutp_test() {
-        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0).get_flags(), false);
+        let mut s: FlagSquare<u16, Flag<u16>> = FlagSquare::new(Flag::from(0usize).get_flags(), false);
         s.setp(Flag::new(0b1110));
         let mut p = s.getp_mut();
         *p = p.remove_flag(Flag::new(0b10000010));
