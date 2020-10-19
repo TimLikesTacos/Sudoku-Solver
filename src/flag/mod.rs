@@ -1,9 +1,14 @@
+mod flagops;
+
 use crate::constants::MAX_NUM;
 use std::convert::TryFrom;
+use crate::square::flag_limits::{IntLimits, FlagLimits};
+use std::ops::Add;
+use crate::square::square::Flag;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct Flag<T> {
-    flags: T,
+pub struct FlagType<F: Flag> {
+    flags: F,
     count: u8,
 }
 
@@ -33,7 +38,7 @@ where
 todo: macro-ize
 **/
 
-impl FlagTrait for Flag<u16> {
+impl FlagTrait for FlagType<u16> {
     type IntForFlag = u16;
     const NEG: u16 = 0b111111111;
 
@@ -41,7 +46,7 @@ impl FlagTrait for Flag<u16> {
         self.flags
     }
 
-    fn add_flag(&self, v: Flag<u16>) -> Self {
+    fn add_flag(&self, v: FlagType<u16>) -> Self {
         let mut f = self.flags;
         f |= v.flags;
         let mut count: u8 = 0;
@@ -51,14 +56,14 @@ impl FlagTrait for Flag<u16> {
             count += 1;
         }
 
-        Flag {
+        FlagType {
             flags: f,
             count: count,
         }
     }
 
     fn add_num(&mut self, v: u16) -> Self {
-        let add = Flag::from(v as usize).flags;
+        let add = FlagType::from(v as usize).flags;
         if add & self.flags != add {
             self.count += 1;
             self.flags |= add;
@@ -66,7 +71,7 @@ impl FlagTrait for Flag<u16> {
         self.clone()
     }
 
-    fn remove_flag(&mut self, v: Flag<u16>) -> Self {
+    fn remove_flag(&mut self, v: FlagType<u16>) -> Self {
         self.flags &= !v.flags;
         let mut n = self.flags;
         let mut count: u8 = 0;
@@ -79,7 +84,7 @@ impl FlagTrait for Flag<u16> {
     }
 
     fn remove_num(&mut self, v: u16) -> Self {
-        let sub = Flag::from(v as usize).flags;
+        let sub = FlagType::from(v as usize).flags;
         if self.flags & sub == sub {
             self.flags ^= sub;
             self.count -= 1;
@@ -93,7 +98,7 @@ impl FlagTrait for Flag<u16> {
     }
 
     fn new(v: u16) -> Self {
-        Flag {
+        FlagType {
             flags: v,
             count: v.count_ones() as u8,
         }
@@ -110,7 +115,7 @@ impl FlagTrait for Flag<u16> {
     fn merge(slice: &[Self]) -> Self {
         // Start with 0, bitwise OR each flags value in slice
         let flags: u16 = slice.iter().fold(0, |acc, x| acc | x.flags);
-        Flag::new(flags)
+        FlagType::new(flags)
     }
 
     fn is_single(&self) -> bool {
@@ -126,76 +131,13 @@ impl FlagTrait for Flag<u16> {
     }
 }
 
-impl Default for Flag<u16> {
-    fn default() -> Flag<u16> {
-        Flag::new(0)
+impl Default for FlagType<u16> {
+    fn default() -> FlagType<u16> {
+        FlagType::new(0)
     }
 }
 
-/**
-todo: macro-ize this to allow for different primitive integers
-**/
-impl From<usize> for Flag<u16> {
-    fn from(item: usize) -> Flag<u16> {
-        if item == 0 {
-            Flag { flags: 0, count: 0 }
-        } else {
-            Flag {
-                flags: 1 << (item - 1),
-                count: 1,
-            }
-        }
-    }
-}
 
-impl From<Flag<u16>> for usize {
-    fn from(item: Flag<u16>) -> usize {
-        if item.count != 1 {
-            0
-        } else {
-            (item.flags.trailing_zeros() + 1) as usize
-        }
-
-        // let mut v: u16 = item.flags;
-        // let mut num: u16 = 0;
-        // let mut place = 1;
-        // while v > 0 {
-        //     if v & 1 > 0 {
-        //         num += place;
-        //     }
-        //     v >>= 1;
-        //     place += 1;
-        // }
-        // num as usize
-    }
-}
-
-impl From<u16> for Flag<u16> {
-    fn from(item: u16) -> Flag<u16> {
-        if item == 0 {
-            Flag { flags: 0, count: 0 }
-        } else {
-            Flag {
-                flags: 1 << (item - 1),
-                count: 1,
-            }
-        }
-    }
-}
-
-impl From<Flag<u16>> for u16 {
-    fn from(item: Flag<u16>) -> u16 {
-        if item.count != 1 {
-            0
-        } else {
-            /*
-            todo: proper error handling
-             */
-            u16::try_from(item.flags.trailing_zeros() + 1).unwrap()
-        }
-
-    }
-}
 
 #[cfg(test)]
 mod flag_tests {
@@ -203,7 +145,7 @@ mod flag_tests {
 
     #[test]
     fn set_test() {
-        let t1: Flag<u16> = Flag::new(0);
+        let t1: FlagType<u16> = FlagType::new(0);
         let mut t1 = t1.add_flag(2usize.into());
 
         assert_eq!(usize::from(t1), 2);
@@ -214,26 +156,26 @@ mod flag_tests {
 
     #[test]
     fn remove_test() {
-        let mut t1 = Flag::from(8usize);
-        t1 = t1.add_flag(Flag::from(4usize));
+        let mut t1 = FlagType::from(8usize);
+        t1 = t1.add_flag(FlagType::from(4usize));
         assert_eq!(t1.count, 2);
         assert_eq!(t1.flags, 0b10001000);
-        t1.remove_flag(Flag::from(8usize));
+        t1.remove_flag(FlagType::from(8usize));
         assert_eq!(t1.flags, 0b1000);
         assert_eq!(t1.count, 1);
         t1.remove_num(1);
         assert_eq!(t1.count, 1);
         assert_eq!(t1.flags, 0b1000);
-        t1.remove_flag(Flag::from(4usize));
+        t1.remove_flag(FlagType::from(4usize));
         assert!(t1.count == 0);
         assert!(t1.flags == 0);
 
-        let mut t1 = Flag::from(1usize);
-        let mut t2 = Flag::from(4usize);
+        let mut t1 = FlagType::from(1usize);
+        let mut t2 = FlagType::from(4usize);
         t1 = t1.add_flag(t2);
         assert_eq!(t1.flags, 0b1001);
         assert_eq!(t1.count, 2);
-        let mut t3 = Flag::from(9usize);
+        let mut t3 = FlagType::from(9usize);
         assert_eq!(t3.flags, 0b100000000);
         t3 = t3.add_flag(t1);
         assert_eq!(t3.flags, 0b100001001);
@@ -248,7 +190,7 @@ mod flag_tests {
 
     #[test]
     fn clear_test() {
-        let mut t1 = Flag::new(0b1100);
+        let mut t1 = FlagType::new(0b1100);
         assert_eq!(t1.count(), 2);
         t1.clear();
         assert_eq!(t1, 0usize.into());
@@ -257,38 +199,38 @@ mod flag_tests {
 
     #[test]
     fn from_into() {
-        let mut t1: Flag<u16> = Flag::from(4usize);
+        let mut t1: FlagType<u16> = FlagType::from(4usize);
         assert_eq!(t1.flags, 0b1000);
-        assert_eq!(t1.add_flag(Flag::from(8usize)).flags, 0b10001000);
+        assert_eq!(t1.add_flag(FlagType::from(8usize)).flags, 0b10001000);
     }
 
     #[test]
     fn merge_test() {
         let flags = [
-            Flag::new(0b10000),
-            Flag::new(0b00000),
-            Flag::new(0b00100),
-            Flag::new(0b10010),
-            Flag::new(0b00001),
+            FlagType::new(0b10000),
+            FlagType::new(0b00000),
+            FlagType::new(0b00100),
+            FlagType::new(0b10010),
+            FlagType::new(0b00001),
         ];
-        let res = Flag::merge(&flags[2..]);
+        let res = FlagType::merge(&flags[2..]);
         assert_eq!(res.flags, 0b10111);
         assert_eq!(res.count, 4);
-        let res = Flag::merge(&flags[0..=2]);
+        let res = FlagType::merge(&flags[0..=2]);
         assert_eq!(res.flags, 0b10100);
         assert_eq!(res.count, 2);
     }
 
     #[test]
     fn flag16neg() {
-        let res: u16 = Flag::NEG;
+        let res: u16 = FlagType::NEG;
         assert_eq!(res, 0b111111111);
     }
 
     #[test]
     fn get_initial_test() {
-        let a = Flag::new(0b0101);
-        let res = Flag::set_initial(a);
+        let a = FlagType::new(0b0101);
+        let res = FlagType::set_initial(a);
         assert_eq!(res.flags, 0b111111010);
     }
 }

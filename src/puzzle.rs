@@ -4,6 +4,7 @@ use crate::square::*;
 use crate::*;
 use crate::conv_input_output::PuzInput;
 use crate::constants::*;
+use crate::support::*;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G> {
@@ -12,13 +13,13 @@ pub enum Solutions<G> {
     Multi(Vec<Grid<G>>),
 }
 pub struct Puzzle<Unsolv:  SquareFlagTrait, Solv: SquareTrait> {
-    grid: Grid<Unsolv>,
-    solution: Solutions<Solv>,
+    pub(crate) grid: Grid<Unsolv>,
+    pub(crate) solution: Solutions<Solv>,
 }
 
 pub struct SimplePuzzle<Square: SquareTrait> {
-    grid: Grid<Square>,
-    solution: Solutions<Square>,
+    pub(crate) grid: Grid<Square>,
+    pub(crate) solution: Solutions<Square>,
 }
 
 pub trait PuzzleTrait<'a> {
@@ -28,6 +29,7 @@ pub trait PuzzleTrait<'a> {
     fn is_solved(&'a self) -> bool;
     //fn set_initial(&mut self, initial: Vec<u8>);
     fn initial_flags(&mut self);
+    fn reset_square(&mut self, index:usize);
 
 }
 
@@ -47,6 +49,10 @@ impl <'a, S: SquareTrait> PuzzleTrait <'a> for SimplePuzzle<S> {
             .all(|_| true);
 
         puz
+    }
+
+    fn reset_square (&mut self, index:usize) {
+        self.grid[index].reset_value();
     }
 
     fn get_solution(&self) -> Self::Solution {
@@ -81,10 +87,39 @@ impl<
             .iter()
             .enumerate()
             .filter(|(_, &c)| c != 0)
-            .map(|(i, &c)| puz.grid[i].setv(Unsolv::input_convert(c)))
+            .map(|(i, &c)| {puz.grid[i].setv(Unsolv::input_convert(c));
+                puz.grid[i].fix();})
             .all(|_| true);
         puz.initial_flags();
         puz
+    }
+
+    fn reset_square (&mut self, index: usize) {
+        if self.grid[index].fixed() {
+            return;
+        }
+        let old_num = self.grid[index].getv();
+        self.grid[index].reset_value();
+        /* Undo all the flags */
+        let col = index_to_col(index);
+        let row = index_to_row(index);
+        let nbox = index_to_box(index);
+
+        // undo the square by updating the flags for all affected squares.
+        for i  in 0..MAX_NUM {
+            let coli = index_from_col(col, i);
+            let rowi = index_from_row (row, i);
+            let boxi = index_from_box(nbox, i);
+
+            let v = self.grid.single_iterator(coli).fold(Vec::new(), |mut acc, s| {acc.push(s.getv()); acc});
+            self.grid[coli].initial_setp(&v);
+            let v = self.grid.single_iterator(rowi).fold(Vec::new(), |mut acc, s| {acc.push(s.getv()); acc});
+            self.grid[rowi].initial_setp(&v);
+            let v = self.grid.single_iterator(boxi).fold(Vec::new(), |mut acc, s| {acc.push(s.getv()); acc});
+            self.grid[boxi].initial_setp(&v);
+
+        }
+
     }
 
     fn get_solution(&self) -> Self::Solution {
@@ -100,7 +135,10 @@ impl<
     }
 
     fn initial_flags (&mut self) {
-        for i in 0..MAX_NUM {
+        for i in 0..NUM_CELLS {
+            if self.grid[i].fixed() {
+                continue;
+            }
             let vals:Vec<Unsolv::Value> = self.grid.single_iterator(i).
                 fold(Vec::new(), |mut acc, x| {acc.push(x.getv()); acc});
             self.grid[i].initial_setp(&vals);
@@ -156,6 +194,34 @@ mod grid_and_puzzle_tests {
         ]
     }
 
+    #[test]
+    fn proper_init_value () {
+        let puz: SimplePuzzle<SimpleSquare<u16>> = SimplePuzzle::new_from_vec(get_example().as_input().unwrap());
+        let expected: [u16;9] = [5, 3, 0, 0, 7, 0, 0, 0, 0];
+        assert!(puz.grid.row_iter(3).zip(expected.iter()).all(|(v1, v2)| v1.getv() == *v2));
+
+
+
+        let puz: SimplePuzzle<FlagSquare<u16, Flag<u16>>> = SimplePuzzle::new_from_vec(get_example().as_input().unwrap());
+        let expected: [u16;9] = [5, 3, 0, 0, 7, 0, 0, 0, 0];
+        assert!(puz.grid.row_iter(3).zip(expected.iter()).all(|(v1, v2)| v1.getv() == *v2));
+        let box_expected: [u16;9] = [0, 0, 11, 0, 74, 74, 3, 0, 0];
+
+        //assert!(puz.grid.box_iter(9).zip(box_expected.iter()).all(|(v1, v2)| v1.getp().get_flags() == *v2));
+
+        let puz: Puzzle<FlagSquare<u16, Flag<u16>>, SimpleSquare<u16>> = Puzzle::new_from_vec(get_example().as_input().unwrap());
+        let expected: [u16;9] = [5, 3, 0, 0, 7, 0, 0, 0, 0];
+        assert!(puz.grid.row_iter(3).zip(expected.iter()).all(|(v1, v2)| v1.getv() == *v2));
+        let box_expected: [u16;9] = [0, 0, 11, 0, 74, 74, 3, 0, 0];
+       // dbg!(puz.grid.box_iter(9).fold(Vec::new(), |mut acc,x| {acc.push(x.getp()); acc}));
+        assert!(puz.grid.box_iter(9).zip(box_expected.iter()).all(|(v1, v2)| v1.getp().get_flags() == *v2));
+
+        let puz: Puzzle<FlagSquare<u16, Flag<u16>>, FlagSquare<u16, Flag<u16>>> = Puzzle::new_from_vec(get_example().as_input().unwrap());
+        let expected: [u16;9] = [5, 3, 0, 0, 7, 0, 0, 0, 0];
+        assert!(puz.grid.row_iter(3).zip(expected.iter()).all(|(v1, v2)| v1.getv() == *v2));
+        let box_expected: [u16;9] = [0, 0, 11, 0, 74, 74, 3, 0, 0];
+        assert!(puz.grid.box_iter(9).zip(box_expected.iter()).all(|(v1, v2)| v1.getp().get_flags() == *v2));
+    }
     #[test]
     fn row_iter_test() {
         let example:Vec<Vec<u8>> = get_example();

@@ -5,10 +5,11 @@ use crate::flag::*;
 use crate::square::*;
 use crate::support::*;
 use std::ops::{Index, IndexMut};
+use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Grid<S> {
-    grid: Vec<S>,
+    pub(crate) grid: Vec<S>,
 }
 
 
@@ -28,7 +29,7 @@ impl<'a, Flag: 'a + SquareFlagTrait, Simple: SquareTrait + From<&'a Flag>> From<
 
 impl<S> Grid<S>
 where
-    S: SquareTrait + Default + Clone,
+    S: SquareTrait + Default,
 {
     pub fn new() -> Grid<S> {
         Grid {
@@ -88,6 +89,17 @@ where
     pub fn single_iterator(&self, index: usize) -> impl Iterator<Item = &'_ S> {
         self.box_iter(index)
             .chain(self.row_iter(index).chain(self.col_iter(index)))
+    }
+
+    pub fn valid_entry(&self, index: usize) -> bool{
+        let mut v:Vec<S::Value> = Vec::new();
+        self.single_iterator(index)
+            .filter(|&s| s.getv() != S::Value::from(0))
+            .all ( |s| {
+                if v.contains(&s.getv()){false}
+                else {v.push(s.getv().clone()); true}
+            })
+
     }
 
 }
