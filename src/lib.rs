@@ -3,16 +3,16 @@
 // mod errors;
 // // mod human_calcs;
 // mod box_iter;
- mod constants;
+ //mod constants;
 // mod conv_input_output;
-mod flag;
+mod sq_element;
 // mod grid;
 // mod puzzle;
- mod support;
+ //mod support;
 // mod brute;
 // mod square;
 
-mod square;
+//mod square;
 
 // mod puzzle;
 //mod conv_input_output;

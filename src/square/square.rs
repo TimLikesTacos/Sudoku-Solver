@@ -1,9 +1,9 @@
 
-use crate::flag::*;
+use crate::sq_element::*;
 use std::ops::Add;
-use crate::square::flag_limits::*;
+use crate::sq_element::flag_limits::*;
 //use crate::square::square_ops::{Flag, ValueTr};
-use crate::square::flag_limits::{IntLimits, FlagLimits};
+use crate::sq_element::flag_limits::{IntLimits, FlagLimits};
 //use crate::square::square::{Flag, ValueTr};
 
 
@@ -20,18 +20,9 @@ pub struct SimpleSquare<V: ValueTr> {
     pub(crate)fixed: bool,
 }
 
-pub trait ValueTr: Default + Copy + Clone + IntLimits + Add<Output = Self> + PartialEq + TryFrom<usize>{}
-impl ValueTr for u8 {}
-impl ValueTr for u16 {}
 
-pub trait Flag: Default + Copy + Clone + FlagLimits + Add<Output = Self> + PartialEq + TryFrom<usize>{}
-impl Flag for u16 {}
-impl Flag for u32 {}
 
-pub trait IncReset<V: ValueTr>{
-    fn inc(&mut self) -> bool;
-    fn reset (&mut self);
-}
+
 
 
 
@@ -172,7 +163,7 @@ pub trait SquareTrait: Default + Clone + PartialEq {
 // }
 //
 // ///* `From` is implemented for FlagSquare to SimpleSquare, but not the other way as data would
-// /// be lost for the flag values.  Keep this in mind when using other functions that have `from()`
+// /// be lost for the sq_element values.  Keep this in mind when using other functions that have `from()`
 // /// for different square functions *///
 // impl<V: Clone + From<u8> + Add<Output=V>, F: FlagTrait> From<&FlagSquare<V, F>> for SimpleSquare<V> {
 //     fn from(other: &FlagSquare<V, F>) -> SimpleSquare<V> {
@@ -199,7 +190,7 @@ pub trait SquareTrait: Default + Clone + PartialEq {
 // #[cfg(test)]
 // mod square_tests {
 //     use super::*;
-//     use crate::flag::FlagTrait;
+//     use crate::sq_element::FlagTrait;
 //
 //     #[test]
 //     fn new_test() {

@@ -1,7 +1,7 @@
 use crate::square::*;
-use crate::square::flag_limits::*;
+use crate::sq_element::flag_limits::*;
 use std::ops::Add;
-use crate::flag::{ValueTr, Flag};
+use crate::sq_element::{ValueTr, Flag};
 
 // Combine many required traits into one.
 
