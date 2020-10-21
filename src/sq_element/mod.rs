@@ -1,31 +1,45 @@
-mod flag;
-mod value;
+
+pub(crate) mod value;
+pub(crate) mod flag;
 pub mod flag_limits;
 
 use std::convert::TryFrom;
 use flag_limits::{IntLimits, FlagLimits};
-use std::ops::Add;
+use std::ops::{Add, BitAnd};
 use crate::sq_element::value::Value;
 use crate::sq_element::flag::Flag;
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct FlagType<F: Flag> {
-    flags: F,
-    count: u8,
+    pub(crate)flags: F,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub struct ValueType<V: Value> {
-    value: V
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct IntType<V: Value> {
+    pub(crate)value: V
 }
 
-pub trait IncReset {
+
+pub trait SqElement: Default  {
+    type Item;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
+    fn get(&self) -> Self::Item;
+    fn set(&mut self, value: Self::Item);
+}
+
+pub trait FlElement: Default
+where Self: Sized  {
+    type Item;
+    fn count_ones(flags: Self::Item) -> u8;
+    fn merge (&self, slice:&[Self]) -> Self;
+    fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]);
+    fn is_flagged (&self, other: Self) -> bool;
 }
 
 
-impl <F:Flag> FlagType<F> {
+impl <F:Flag> FlElement for FlagType<F> {
+    type Item = F;
     fn count_ones (flags: F) -> u8 {
         let mut f = flags;
         let mut count = 0;
@@ -37,25 +51,23 @@ impl <F:Flag> FlagType<F> {
     }
 
     fn merge (&self, slice: &[Self]) -> Self {
-        let res = slice.iter().fold(self.flags, |acc, x| acc | x.flags);
         Self {
-            flags: res,
-            count: Self::count_ones(res),
+            flags: slice.iter().fold(self.flags, |acc, x| acc | x.flags)
         }
     }
 
-    fn set_from_value <V: Value> (&mut self, v_slice: &[ValueType<V>]) {
-        let merged = v_slice.iter()
+    fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]) {
+        self.flags = v_slice.iter()
             .fold(F::ZERO, |mut acc, x| acc | Self::from(*x).flags);
-
-        self.flags = merged;
-        self.count = Self::count_ones(merged);
     }
 
-    fn set (&mut self, f: F) {
-        self.flags = f;
-        self.count = Self::count_ones(f);
+    fn is_flagged( &self, other: Self) -> bool{
+        if self.flags & other.flags > F::ZERO {
+            true
+        } else {false}
     }
+
+
 }
 //
 // pub trait FlagTrait: PartialEq

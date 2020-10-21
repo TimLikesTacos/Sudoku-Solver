@@ -10,7 +10,7 @@ mod sq_element;
 // mod puzzle;
  //mod support;
 // mod brute;
-// mod square;
+mod square;
 
 //mod square;
 
