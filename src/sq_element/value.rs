@@ -79,6 +79,7 @@ impl <V: Value> From <i32> for IntType<V> {
     }
 }
 
+
 impl <V: Value> From <u8> for IntType<V> {
     fn from (other: u8) -> Self {
         IntType {

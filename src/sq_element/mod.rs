@@ -20,8 +20,8 @@ pub struct IntType<V: Value> {
 }
 
 
-pub trait SqElement: Default  {
-    type Item;
+pub trait SqElement: Default + PartialEq {
+    type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
     fn get(&self) -> Self::Item;

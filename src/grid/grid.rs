@@ -1,59 +1,69 @@
-use crate::box_iter::*;
-use crate::constants::*;
-use crate::conv_input_output::*;
-use crate::flag::*;
-use crate::square::*;
-use crate::support::*;
+use crate::grid::*;
+use crate::square::{Square, FlagSquare, SimpleSquare};
+use crate::sq_element::{FlagType, SqElement, FlElement};
+use crate::sq_element::value::Value;
+use crate::sq_element::flag::Flag;
 use std::ops::{Index, IndexMut};
-use std::collections::BTreeSet;
+use crate::support::*;
+
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Grid<S> {
     pub(crate) grid: Vec<S>,
 }
 
-
-impl<'a, Flag: 'a + SquareFlagTrait, Simple: SquareTrait + From<&'a Flag>> From<&'a Grid<Flag>>
-    for Grid<Simple>
-{
-    fn from(other: &'a Grid<Flag>) -> Self {
-        let transfer = other.grid.iter().fold(Vec::new(), |mut acc, x| {
-            acc.push(Simple::from(x));
-            acc
-        });
-        Self {
-            grid: transfer.clone(),
+impl <V1: SqElement, V2: SqElement, F: FlElement> From<Grid<SimpleSquare<V1>>> for Grid<FlagSquare<V2, F>>
+    where FlagSquare<V2, F>: From<SimpleSquare<V1>>, SimpleSquare<V1>: Copy{
+    fn from(other: Grid<SimpleSquare<V1>>) -> Self {
+        Grid {
+            grid: other.grid.iter().fold(Vec::new(),|mut acc, &x|
+                {acc.push(<FlagSquare<V2, F>>::from(x)); acc}),
         }
     }
 }
 
-impl<S> Grid<S>
-where
-    S: SquareTrait + Default,
+impl <V1: SqElement, V2: SqElement, F: FlElement> From<Grid<FlagSquare<V2, F>>> for Grid<SimpleSquare<V1>>
+    where SimpleSquare<V1>: From<FlagSquare<V2, F>>, FlagSquare<V2, F>: Copy{
+    fn from(other: Grid<FlagSquare<V2, F>>) -> Self {
+        Grid {
+            grid: other.grid.iter().fold(Vec::new(),|mut acc, &x|
+                {acc.push(<SimpleSquare<V1>>::from(x)); acc}),
+        }
+    }
+}
+
+
+impl<S: SqElement + Clone> Grid<S>
+
 {
     pub fn new() -> Grid<S> {
         Grid {
             grid: vec![S::default(); NUM_CELLS],
         }
     }
-
+    /// Iterate over the entire 1-D row dominate grid vector
     pub fn grid_iter (&self) -> impl Iterator <Item= &S>{
         self.grid.iter()
     }
 
+    /// Iterate mutably over the entire 1-D row dominate grid vector
     pub fn grid_iter_mut(&mut self) -> impl Iterator <Item = &mut S> {
         self.grid.iter_mut()
     }
+
+    /// Iterate starting from the beginning of the row that contains the element called.
     pub fn row_iter(&self, index: usize) -> impl Iterator<Item = &S> {
         let row = index_to_row(index);
         self.grid[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter()
     }
 
+    /// Iterate starting from the beginning of the column that contains the element called.
     pub fn col_iter(&self, index: usize) -> impl Iterator<Item = &S> {
         let col = index_to_col(index);
         self.grid.iter().skip(col).step_by(MAX_NUM)
     }
 
+    /// Iterate over the box that contains the element called.
     pub fn box_iter(&self, index: usize) -> BoxIter<S> {
         let box_num = index_to_box(index);
 
@@ -63,17 +73,20 @@ where
         }
     }
 
+    /// Iterate mutably starting from the beginning of the row that contains the element called.
     pub fn row_iter_mut(&mut self, index: usize) -> impl Iterator<Item = &'_ mut S> {
         let row = index_to_row(index);
         self.grid[((row * MAX_NUM)..(row * MAX_NUM + MAX_NUM))].iter_mut()
     }
 
-    pub fn col_iter_mut<'a>(&'a mut self, index: usize) -> impl Iterator<Item = &'a mut S> {
+    /// Iterate mutably starting from the beginning of the column that contains the element called.
+    pub fn col_iter_mut(& mut self, index: usize) -> impl Iterator<Item = & mut S> {
         let col = index_to_col(index);
         self.grid.iter_mut().skip(col).step_by(MAX_NUM)
     }
 
-    pub fn box_iter_mut(&mut self, index: usize) -> BoxIterMut<S> {
+    /// Iterate mutably over the box that contains the element called.
+    pub fn box_iter_mut<'a>(&'a mut self, index: usize) -> impl Iterator <Item = &'a mut S> {
         let box_num = index_to_box(index);
 
         BoxIterMut {
@@ -91,17 +104,6 @@ where
             .chain(self.row_iter(index).chain(self.col_iter(index)))
     }
 
-    pub fn valid_entry(&self, index: usize) -> bool{
-        let mut v:Vec<S::Value> = Vec::new();
-        self.single_iterator(index)
-            .filter(|&s| s.getv() != S::Value::from(0))
-            .all ( |s| {
-                if v.contains(&s.getv()){false}
-                else {v.push(s.getv().clone()); true}
-            })
-
-    }
-
 }
 
 impl<S> Index<usize> for Grid<S> {
@@ -116,4 +118,3 @@ impl<S> IndexMut<usize> for Grid<S> {
         &mut self.grid[i]
     }
 }
-

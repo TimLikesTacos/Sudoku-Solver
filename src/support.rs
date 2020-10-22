@@ -1,4 +1,4 @@
-use crate::constants::*;
+use crate::grid::constants::*;
 use crate::*;
 
 // convert 2-D coordinate to 1-D

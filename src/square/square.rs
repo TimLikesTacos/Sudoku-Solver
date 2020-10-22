@@ -24,7 +24,8 @@ pub struct SimpleSquare<E: SqElement> {
     pub(crate)fixed: bool,
 }
 
-pub trait  Square  where Self::Value: Sized {
+pub trait  Square: PartialEq + Copy + Clone
+    where Self::Value: Sized + PartialEq{
     type Value;
     fn set(&mut self, v: Self::Value);
     fn getv(&self) -> Self::Value;
