@@ -6,8 +6,9 @@ pub(crate) mod flag_limits;
 use std::convert::TryFrom;
 use flag_limits::{IntLimits, FlagLimits};
 use std::ops::{Add, AddAssign, SubAssign};
-use crate::sq_element::value::Value;
+use crate::sq_element::value::NormalInt;
 use crate::sq_element::flag::Flag;
+use crate::sq_element::flag_limits::ZeroAndOne;
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct FlagType<F: Flag> {
@@ -15,19 +16,42 @@ pub struct FlagType<F: Flag> {
 }
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
-pub struct IntType<V: Value> {
+pub struct IntType<V: NormalInt> {
     pub(crate)value: V
 }
 
+pub trait OneZero {
+    type Value: ZeroAndOne;
+    fn zero () -> Self;
+    fn one () -> Self;
+}
 
-pub trait SqElement: Default + PartialEq + Into<u8> +From<u8> {
+impl <V: NormalInt> OneZero for IntType<V>{
+    type Value = V;
+    fn zero() -> Self {
+        Self {value: V::ZERO}
+    }
+    fn one() -> Self {
+        Self {value: V::ONE}
+    }
+}
+impl <F: Flag> OneZero for FlagType<F> {
+    type Value = F;
+    fn zero() -> Self {
+        Self {flags: F::ZERO}
+    }
+    fn one() -> Self {
+        Self {flags: F::ONE}
+    }
+}
+
+pub trait SqElement: OneZero + Default + PartialEq + Into<u8> +From<u8> + Copy + Clone{
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
     fn get(&self) -> Self::Item;
     fn set(&mut self, value: Self::Item);
-    fn zero() -> Self;
-    fn one() -> Self;
+
 }
 
 pub trait FlElement: SqElement + AddAssign + SubAssign
@@ -35,7 +59,7 @@ where Self: Sized  {
     type FlagItem;
     fn count_ones(flags: Self::FlagItem) -> u8;
     fn merge (&self, slice:&[Self]) -> Self;
-    fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]);
+    fn set_from_value <V: NormalInt> (&mut self, v_slice: &[IntType<V>]);
     fn is_flagged (&self, other: Self) -> bool;
 }
 
@@ -58,7 +82,7 @@ impl <F:Flag> FlElement for FlagType<F> {
         }
     }
 
-    fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]) {
+    fn set_from_value <V: NormalInt> (&mut self, v_slice: &[IntType<V>]) {
         self.flags = v_slice.iter()
             .fold(F::ZERO, |acc, x| acc | Self::from(*x).flags);
     }
@@ -71,132 +95,7 @@ impl <F:Flag> FlElement for FlagType<F> {
 
 
 }
-//
-// pub trait FlagTrait: PartialEq
-// where
-//     Self: Sized,
-// {
-//     type IntForFlag;
-//     /// Contains all 1's in the size from 1 to MAX_NUM. Used for bitwise negation.
-//     const NEG: Self::IntForFlag;
-//
-//     fn get_flags(&self) -> Self::IntForFlag;
-//     fn add_flag(&self, v: Self) -> Self;
-//     fn add_num(&mut self, v: Self::IntForFlag) -> Self;
-//     fn remove_flag(&mut self, v: Self) -> Self;
-//     fn remove_num(&mut self, v: Self::IntForFlag) -> Self;
-//     fn clear(&mut self);
-//     fn new(v: Self::IntForFlag) -> Self;
-//     fn count(&self) -> u8;
-//     fn bits() -> u8;
-//     fn merge(slice: &[Self]) -> Self;
-//     fn is_single(&self) -> bool;
-//     fn set_initial(present_values: Self) -> Self;
-// }
-//
-// /**
-// todo: macro-ize
-// **/
-//
-// impl FlagTrait for FlagType<u16> {
-//     type IntForFlag = u16;
-//     const NEG: u16 = 0b111111111;
-//
-//     fn get_flags(&self) -> Self::IntForFlag {
-//         self.flags
-//     }
-//
-//     fn add_flag(&self, v: FlagType<u16>) -> Self {
-//         let mut f = self.flags;
-//         f |= v.flags;
-//         let mut count: u8 = 0;
-//         let mut n = f;
-//         while n != 0 {
-//             n = n & (n - 1);
-//             count += 1;
-//         }
-//
-//         FlagType {
-//             flags: f,
-//             count: count,
-//         }
-//     }
-//
-//     fn add_num(&mut self, v: u16) -> Self {
-//         let add = FlagType::from(v as usize).flags;
-//         if add & self.flags != add {
-//             self.count += 1;
-//             self.flags |= add;
-//         }
-//         self.clone()
-//     }
-//
-//     fn remove_flag(&mut self, v: FlagType<u16>) -> Self {
-//         self.flags &= !v.flags;
-//         let mut n = self.flags;
-//         let mut count: u8 = 0;
-//         while n != 0 {
-//             n = n & (n - 1);
-//             count += 1;
-//         }
-//         self.count = count;
-//         self.clone()
-//     }
-//
-//     fn remove_num(&mut self, v: u16) -> Self {
-//         let sub = FlagType::from(v as usize).flags;
-//         if self.flags & sub == sub {
-//             self.flags ^= sub;
-//             self.count -= 1;
-//         }
-//         self.clone()
-//     }
-//
-//     fn clear(&mut self) {
-//         self.flags = 0;
-//         self.count = 0;
-//     }
-//
-//     fn new(v: u16) -> Self {
-//         FlagType {
-//             flags: v,
-//             count: v.count_ones() as u8,
-//         }
-//     }
-//
-//     fn count(&self) -> u8 {
-//         self.count
-//     }
-//
-//     fn bits() -> u8 {
-//         std::mem::size_of::<u16>() as u8 * 8
-//     }
-//
-//     fn merge(slice: &[Self]) -> Self {
-//         // Start with 0, bitwise OR each flags value in slice
-//         let flags: u16 = slice.iter().fold(0, |acc, x| acc | x.flags);
-//         FlagType::new(flags)
-//     }
-//
-//     fn is_single(&self) -> bool {
-//         if self.count == 1 {
-//             true
-//         } else {
-//             false
-//         }
-//     }
-//
-//     fn set_initial(present_values: Self) -> Self {
-//         Self::new(present_values.flags ^ Self::NEG)
-//     }
-// }
-//
-// impl Default for FlagType<u16> {
-//     fn default() -> FlagType<u16> {
-//         FlagType::new(0)
-//     }
-// }
-//
+
 //
 //
 // #[cfg(test)]

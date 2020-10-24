@@ -47,6 +47,7 @@ impl <F:Flag> From<F> for FlagType<F> {
     }
 }
 
+
 impl <F: Flag> From<FlagType<F>> for u8 {
     fn from(item: FlagType<F>) -> u8 {
 
@@ -129,7 +130,7 @@ impl From<FlagType<u16>> for u16 {
     }
 }
 
-impl <V: Value, F: Flag> From <IntType<V>> for FlagType<F> {
+impl <V: NormalInt, F: Flag> From <IntType<V>> for FlagType<F> {
     fn from(other: IntType<V>) -> Self {
         let v = usize::from(other);
         FlagType::from(v)
@@ -165,17 +166,17 @@ impl <F: Flag> SqElement for FlagType<F> {
         self.flags = value;
     }
 
-    fn zero() -> Self {
-        Self {
-            flags: F::ZERO
-        }
-    }
-
-    fn one() -> Self {
-        Self {
-            flags: F::ZERO
-        }
-    }
+    // fn zero() -> Self {
+    //     Self {
+    //         flags: F::ZERO
+    //     }
+    // }
+    //
+    // fn one() -> Self {
+    //     Self {
+    //         flags: F::ZERO
+    //     }
+    // }
 }
 
 impl <F: Flag> Add for FlagType<F> {

@@ -26,10 +26,10 @@ pub trait PuzzleTrait {
     type BoardType;
     type SolutionType;
     fn new(input_vec: Vec<u8>) -> Self;
+    fn set_initial_flags(&mut self);
     fn get_solution(original: &Self::BoardType) -> Self::SolutionType;
     fn is_solved(&self) -> bool;
     //fn set_initial(&mut self, initial: Vec<u8>);
-    fn initial_flags(&mut self);
     fn reset_square(&mut self, index:usize);
 
 }
@@ -41,6 +41,9 @@ impl <Unsolv, Solv> PuzzleTrait for Puzzle <Unsolv, Solv> where Solv: Square + P
 
     fn new(input_vec: Vec<u8>) -> Self {
         let g: Grid<Unsolv> = Grid::new(input_vec);
+        if Unsolv::has_flags(){
+            g.set_initial_flags();
+        }
         let sol = Self::get_solution(&g);
         Puzzle {
             board: g,
@@ -48,6 +51,14 @@ impl <Unsolv, Solv> PuzzleTrait for Puzzle <Unsolv, Solv> where Solv: Square + P
         }
     }
 
+    fn set_initial_flags(&mut self) {
+        unimplemented!()
+        // do the following for each square.
+        for square in 0..MAX_NUM {
+            let v = self.board.single_iterator()
+                .fold(Unsolv::zero())
+        }
+    }
     fn get_solution(original: &Self::BoardType) -> Self::SolutionType{
         let mut copy = original.clone();
         unimplemented!()
@@ -62,9 +73,6 @@ impl <Unsolv, Solv> PuzzleTrait for Puzzle <Unsolv, Solv> where Solv: Square + P
         }
     }
 
-    fn initial_flags(&mut self) {
-        unimplemented!()
-    }
 
     fn reset_square(&mut self, index: usize) {
         unimplemented!()

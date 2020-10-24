@@ -1,7 +1,7 @@
 
 use crate::sq_element::*;
 use crate::sq_element::flag_limits::*;
-use crate::sq_element::value::Value;
+use crate::sq_element::value::NormalInt;
 use crate::sq_element::flag::Flag;
 
 
@@ -21,20 +21,29 @@ pub struct SimpleSquare<E: SqElement> {
 }
 
 pub trait  Square: PartialEq + Clone
-    where Self::Value: Sized + PartialEq{
+    where Self::Element: SqElement,
+       Self::Value:  Sized
+{
+    type Element;
     type Value;
     fn set(&mut self, v: Self::Value);
     fn getv(&self) -> Self::Value;
     fn exportv(&self) -> u8;
-    fn has_flags(&self) -> bool;
+    fn has_flags() -> bool;
     fn fixed(&self) -> bool;
     fn new(v: u8, fix: bool) -> Self;
     fn inc(&mut self) -> bool;
     fn reset_value(&mut self);
+    fn zero() -> Self::Value;
+    fn one() -> Self::Value;
 }
 
-impl <Vt: SqElement + Copy + Clone + Into<u8> + Into<Ft> + From<Ft>, Ft: FlElement  + Copy + Clone + From<Vt>> Square for FlagSquare<Vt, Ft>{
+impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for FlagSquare<Vt, Ft>
+    //where Vt::Item: NormalInt
+{
+    type Element = Vt;
     type Value = Vt::Item;
+
     fn set (&mut self, v: Self::Value) {
         self.value.set(v)
     }
@@ -46,7 +55,7 @@ impl <Vt: SqElement + Copy + Clone + Into<u8> + Into<Ft> + From<Ft>, Ft: FlEleme
         self.value.clone().into()
         //u8::from(self.value.clone())
     }
-    fn has_flags(&self) -> bool { true }
+    fn has_flags() -> bool { true }
     /// Does not set flags
     fn new(v: u8, fix: bool) -> Self {
         FlagSquare {
@@ -93,10 +102,19 @@ impl <Vt: SqElement + Copy + Clone + Into<u8> + Into<Ft> + From<Ft>, Ft: FlEleme
         self.value.reset()
     }
 
+    fn zero() -> Self::Value {
+        Vt::zero().get()
+    }
+
+    fn one() -> Self::Value {
+        Vt::one().get()
+    }
 }
 
-impl<V: Value> Square  for SimpleSquare<IntType<V>>
+impl<V: NormalInt> Square  for SimpleSquare<IntType<V>>
+where IntType<V>: SqElement<Item = V>
 {
+    type Element =IntType<V>;
     type Value = V;
 
     fn getv(&self) -> Self::Value {
@@ -107,7 +125,7 @@ impl<V: Value> Square  for SimpleSquare<IntType<V>>
     }
     fn fixed(&self) -> bool { self.fixed }
 
-    fn has_flags(&self) -> bool { false }
+    fn has_flags() -> bool { false }
     fn new(v: u8, fix: bool) -> Self {
         SimpleSquare {
             value: IntType::from(v),
@@ -127,9 +145,19 @@ impl<V: Value> Square  for SimpleSquare<IntType<V>>
         self.value.set(v)
     }
 
+    fn zero() -> Self::Value {
+        IntType::zero().get()
+    }
+
+    fn one() -> Self::Value {
+        IntType::one().get()
+    }
 }
 
-impl<F: Flag> Square for SimpleSquare<FlagType<F>> {
+impl<F: Flag> Square for SimpleSquare<FlagType<F>>
+where FlagType<F>: SqElement<Item = F>
+{
+    type Element = FlagType<F>;
     type Value = F;
 
     fn set(&mut self, v: Self::Value) {
@@ -144,7 +172,7 @@ impl<F: Flag> Square for SimpleSquare<FlagType<F>> {
         u8::from(self.value)
     }
 
-    fn has_flags(&self) -> bool {
+    fn has_flags() -> bool {
         false
     }
 
@@ -167,6 +195,13 @@ impl<F: Flag> Square for SimpleSquare<FlagType<F>> {
         self.value.reset()
     }
 
+    fn zero() -> Self::Value {
+        FlagType::zero().get()
+    }
+
+    fn one() -> Self::Value {
+        FlagType::one().get()
+    }
 }
 
 impl <OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
@@ -205,15 +240,13 @@ mod square_tests {
         let a: SimpleSquare<FlagType<u16>> = SimpleSquare::new(4u8, true);
         assert_eq!(a.getv(), 0b1000);
         assert_eq!(a.fixed(), true);
-        assert_eq!(a.has_flags(), false);
+
         let a: FlagSquare<IntType<u16>, FlagType<u16>> = FlagSquare::new(4u8, true);
         assert_eq!(a.getv(), 4u16);
         assert_eq!(a.fixed(), true);
-        assert_eq!(a.has_flags(), true);
         let a: FlagSquare<FlagType<u32>, FlagType<u32>> = FlagSquare::new(4u8, false);
         assert_eq!(a.getv(), 0b1000);
         assert_eq!(a.fixed(), false);
-        assert_eq!(a.has_flags(), true);
     }
 
     #[test]

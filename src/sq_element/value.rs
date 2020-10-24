@@ -4,13 +4,13 @@ use std::fmt::Debug;
 use std::convert::TryInto;
 
 // Organize all required traits into one for a value
-pub trait Value: Default + Debug + From<u8> + Copy + Clone + IntLimits + Add<Output = Self>
+pub trait NormalInt: Default + Debug + From<u8> + Copy + Clone + IntLimits + Add<Output = Self>
     + Into<usize> + TryInto<u8> + PartialEq  + PartialOrd + TryFrom<i32> + TryFrom<usize>{}
-impl Value for u8 {}
-impl Value for u16 {}
+impl NormalInt for u8 {}
+impl NormalInt for u16 {}
 
 // Incrememnt and reset the value
-impl <V: Value> SqElement for IntType<V> {
+impl <V: NormalInt> SqElement for IntType<V> {
     type Item = V;
 
     fn inc(&mut self) -> bool {
@@ -35,33 +35,33 @@ impl <V: Value> SqElement for IntType<V> {
         self.value = value
     }
 
-    fn zero() -> Self {
-        Self {
-            value: V::ZERO
-        }
-    }
-
-    fn one() -> Self {
-        Self {
-            value: V::ONE
-        }
-    }
+    // fn zero() -> Self {
+    //     Self {
+    //         value: V::ZERO
+    //     }
+    // }
+    //
+    // fn one() -> Self {
+    //     Self {
+    //         value: V::ONE
+    //     }
+    // }
 }
 
 // Conver to usize.  Useful for output.
-impl <V: Value> From <IntType<V>> for usize {
+impl <V: NormalInt> From <IntType<V>> for usize {
     fn from (other: IntType<V>) -> Self {
         other.value.into()
     }
 }
 
-impl <V: Value> From <IntType<V>> for u8 {
+impl <V: NormalInt> From <IntType<V>> for u8 {
     fn from (other: IntType<V>) -> Self {
         other.value.try_into().unwrap_or_default()
     }
 }
 
-impl <V: Value> From <usize> for IntType<V> {
+impl <V: NormalInt> From <usize> for IntType<V> {
     fn from (other: usize) -> Self {
         IntType {
             value: V::try_from(other).unwrap_or_default()
@@ -69,7 +69,7 @@ impl <V: Value> From <usize> for IntType<V> {
     }
 }
 
-impl <V: Value> From <i32> for IntType<V> {
+impl <V: NormalInt> From <i32> for IntType<V> {
     fn from (other: i32) -> Self {
         IntType {
             value: V::try_from(other).unwrap_or_default()
@@ -77,7 +77,7 @@ impl <V: Value> From <i32> for IntType<V> {
     }
 }
 
-impl <V: Value> From <u8> for IntType<V> {
+impl <V: NormalInt> From <u8> for IntType<V> {
     fn from (other: u8) -> Self {
         IntType {
             value: V::from(other)
@@ -85,7 +85,7 @@ impl <V: Value> From <u8> for IntType<V> {
     }
 }
 
-impl <V: Value> From <&u8> for IntType<V> {
+impl <V: NormalInt> From <&u8> for IntType<V> {
     fn from (other: &u8) -> Self {
         IntType {
             value: V::from(*other)
@@ -94,7 +94,7 @@ impl <V: Value> From <&u8> for IntType<V> {
 }
 
 // Convert from flag to value.
-impl <V: Value, F: Flag> From <FlagType<F>> for IntType<V> {
+impl <V: NormalInt, F: Flag> From <FlagType<F>> for IntType<V> {
     fn from(other: FlagType<F>) -> Self {
         if other.flags == F::ZERO {
             IntType {

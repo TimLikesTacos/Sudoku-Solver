@@ -11,9 +11,9 @@ mod sq_element;
  //mod support;
 // mod brute;
 mod square;
-mod grid;
-pub mod support;
-mod puzzle;
+//mod grid;
+//pub mod support;
+//mod puzzle;
 
 
 #[cfg(test)]
