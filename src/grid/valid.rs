@@ -8,10 +8,7 @@ pub trait ValidEntry {
     fn valid_entry(&self, index:usize) -> bool;
 }
 
-
-impl <S: SqElement + PartialEq> ValidEntry for Grid<SimpleSquare<S>>
-where SimpleSquare<S>: Square + PartialEq, S: PartialEq
-{
+impl <S: Square> ValidEntry for Grid<S> {
     fn valid_entry(&self, index: usize) -> bool {
         let v = self.grid[index].getv();
         if self.grid.iter().filter(|x|x.getv() == v).count() > 1 {
@@ -22,9 +19,22 @@ where SimpleSquare<S>: Square + PartialEq, S: PartialEq
 
     }
 }
+// impl <S: SqElement + PartialEq> ValidEntry for Grid<SimpleSquare<S>>
+// where SimpleSquare<S>: Square + PartialEq, S: PartialEq
+// {
+//     fn valid_entry(&self, index: usize) -> bool {
+//         let v = self.grid[index].getv();
+//         if self.grid.iter().filter(|x|x.getv() == v).count() > 1 {
+//             false
+//         } else {
+//             true
+//         }
+//
+//     }
+// }
 
-impl<S1: SqElement, S2: FlElement> ValidEntry for Grid<FlagSquare<S1, S2>> {
-    fn valid_entry(&self, index:usize) -> bool {
-        true
-    }
-}
+// impl<S1: SqElement + From<S2> + Copy , S2: FlElement + From<S1> + Copy> ValidEntry for Grid<FlagSquare<S1, S2>> {
+//     fn valid_entry(&self, index:usize) -> bool {
+//         true
+//     }
+// }

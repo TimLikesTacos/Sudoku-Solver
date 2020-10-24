@@ -1,7 +1,7 @@
 pub mod grid;
 pub mod box_iter;
 pub mod constants;
-mod valid;
+pub mod valid;
 
 //
 pub use crate::grid::box_iter::*;

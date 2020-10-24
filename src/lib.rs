@@ -11,8 +11,11 @@ mod sq_element;
  //mod support;
 // mod brute;
 mod square;
-//mod grid;
-//pub mod support;
+mod grid;
+pub mod support;
+mod puzzle;
+
+
 #[cfg(test)]
 mod library_tests{
     use super::*;

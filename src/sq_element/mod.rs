@@ -5,7 +5,7 @@ pub(crate) mod flag_limits;
 
 use std::convert::TryFrom;
 use flag_limits::{IntLimits, FlagLimits};
-use std::ops::{Add, BitAnd, AddAssign, SubAssign};
+use std::ops::{Add, AddAssign, SubAssign};
 use crate::sq_element::value::Value;
 use crate::sq_element::flag::Flag;
 
@@ -20,7 +20,7 @@ pub struct IntType<V: Value> {
 }
 
 
-pub trait SqElement: Default + PartialEq + Into<u8> +From<u8>{
+pub trait SqElement: Default + PartialEq + Into<u8> +From<u8> {
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
@@ -60,7 +60,7 @@ impl <F:Flag> FlElement for FlagType<F> {
 
     fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]) {
         self.flags = v_slice.iter()
-            .fold(F::ZERO, |mut acc, x| acc | Self::from(*x).flags);
+            .fold(F::ZERO, |acc, x| acc | Self::from(*x).flags);
     }
 
     fn is_flagged( &self, other: Self) -> bool{

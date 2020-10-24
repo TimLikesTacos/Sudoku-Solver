@@ -1,5 +1,5 @@
 use crate::square::square::*;
-use crate::sq_element::{SqElement, FlElement, IntType, FlagType};
+use crate::sq_element::{FlElement, IntType, FlagType};
 use crate::sq_element::value::Value;
 use crate::sq_element::flag::Flag;
 
@@ -33,6 +33,27 @@ impl <V: Value, Ft: FlElement + From<u8>> From<u8> for FlagSquare<IntType<V>, Ft
     }
 }
 
+impl <V: Value, Ft: FlElement> From<&u8> for FlagSquare<IntType<V>, Ft> {
+    fn from(v: &u8) -> Self {
+        FlagSquare {
+            value: IntType::from(v),
+            fixed: if *v > 0 {true} else {false},
+            flags: Ft::zero(),
+            count: 0,
+        }
+    }
+}
+
+impl <V: Flag, Ft: FlElement> From<&u8> for FlagSquare<FlagType<V>, Ft> {
+    fn from(v: &u8) -> Self {
+        FlagSquare {
+            value: FlagType::from(*v),
+            fixed: if *v > 0 {true} else {false},
+            flags: Ft::zero(),
+            count: 0,
+        }
+    }
+}
 impl <F: Flag> From<u8> for SimpleSquare<FlagType<F>> {
     fn from(v: u8) -> Self {
         SimpleSquare {
@@ -117,6 +138,26 @@ impl <Ft: FlElement, F:Flag, F2:Flag> From<FlagSquare<FlagType<F>, Ft>> for Simp
     fn from(other: FlagSquare<FlagType<F>, Ft>) -> Self {
         SimpleSquare {
             value: FlagType::from(usize::from(other.value)),
+            fixed: other.fixed,
+
+        }
+    }
+}
+
+impl <Ft: FlElement, F:Flag, V:Value > From<FlagSquare<FlagType<F>, Ft>> for SimpleSquare<IntType<V>> {
+    fn from(other: FlagSquare<FlagType<F>, Ft>) -> Self {
+        SimpleSquare {
+            value: IntType::from(usize::from(other.value)),
+            fixed: other.fixed,
+
+        }
+    }
+}
+
+impl < F:Flag, V:Value > From<SimpleSquare<FlagType<F>>> for SimpleSquare<IntType<V>> {
+    fn from(other: SimpleSquare<FlagType<F>>) -> Self {
+        SimpleSquare {
+            value: IntType::from(usize::from(other.value)),
             fixed: other.fixed,
 
         }
