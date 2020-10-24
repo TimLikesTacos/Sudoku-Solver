@@ -12,31 +12,61 @@ pub enum Solutions<G> {
     One(Grid<G>),
     Multi(Vec<Grid<G>>),
 }
-pub struct Puzzle<Unsolv:  SquareFlagTrait, Solv: SquareTrait> {
+
+
+pub struct Puzzle<Unsolv, Solv> {
     pub(crate) grid: Grid<Unsolv>,
     pub(crate) solution: Solutions<Solv>,
 }
 
-pub struct SimplePuzzle<Square: SquareTrait> {
-    pub(crate) grid: Grid<Square>,
-    pub(crate) solution: Solutions<Square>,
-}
+type SimpleSudoku  = Puzzle<SimpleSquare<IntType<u8>>, SimpleSquare<IntType<u8>>>;
+type RegSudoku     = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>, SimpleSquare<IntType<u8>>>;
+type RegFlagSudoku = Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>, SimpleSquare<IntType<u8>>>;
+type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>, SimpleSquare<IntType<u8>>>;
 
-pub trait PuzzleTrait<'a> {
+
+pub trait PuzzleTrait {
     type Solution;
-    fn new_from_vec(input_vec: Vec<u8>) -> Self;
+    fn from_vec(input_vec: Vec<u8>) -> Self;
     fn get_solution(&self) -> Self::Solution;
-    fn is_solved(&'a self) -> bool;
+    fn is_solved( self) -> bool;
     //fn set_initial(&mut self, initial: Vec<u8>);
     fn initial_flags(&mut self);
     fn reset_square(&mut self, index:usize);
 
 }
 
+impl PuzzleTrait for SimpleSudoku {
+    type Solution = Grid<SimpleSquare<IntType<u8>>>;
+
+    fn from_vec(input_vec: Vec<u8>) -> Self {
+
+        let convert =
+
+    }
+
+    fn get_solution(&self) -> Self::Solution {
+        unimplemented!()
+    }
+
+    fn is_solved(self) -> bool {
+        unimplemented!()
+    }
+
+    fn initial_flags(&mut self) {
+        unimplemented!()
+    }
+
+    fn reset_square(&mut self, index: usize) {
+        unimplemented!()
+    }
+}
+
+
 impl <'a, S: SquareTrait> PuzzleTrait <'a> for SimplePuzzle<S> {
     type Solution = Solutions<S>;
 
-    fn new_from_vec(input_vec: Vec<u8>) -> Self {
+    fn from_vec(input_vec: Vec<u8>) -> Self {
         let mut puz: SimplePuzzle<S> = SimplePuzzle {
             grid: Grid::new(),
             solution: Solutions::None,
@@ -78,7 +108,7 @@ impl<
     > PuzzleTrait<'a> for Puzzle<Unsolv, Solv>
 {
     type Solution = Solutions<Solv>;
-    fn new_from_vec(input_vec: Vec<u8>) -> Puzzle<Unsolv, Solv> {
+    fn from_vec(input_vec: Vec<u8>) -> Puzzle<Unsolv, Solv> {
         let mut puz: Puzzle<Unsolv, Solv> = Puzzle {
             grid: Grid::new(),
             solution: Solutions::None,

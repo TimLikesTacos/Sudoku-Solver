@@ -24,7 +24,7 @@ pub struct SimpleSquare<E: SqElement> {
     pub(crate)fixed: bool,
 }
 
-pub trait  Square: PartialEq + Copy + Clone
+pub trait  Square: PartialEq + Clone
     where Self::Value: Sized + PartialEq{
     type Value;
     fn set(&mut self, v: Self::Value);
@@ -37,10 +37,8 @@ pub trait  Square: PartialEq + Copy + Clone
     fn reset_value(&mut self);
 }
 
-
-impl<V: Value, F: Flag> Square for FlagSquare<IntType<V>, FlagType<F>>
-{
-    type Value = V;
+impl <Vt: SqElement + Copy + Clone + Into<u8> + Into<Ft> + From<Ft>, Ft: FlElement  + Copy + Clone + From<Vt>> Square for FlagSquare<Vt, Ft>{
+    type Value = Vt::Item;
     fn set (&mut self, v: Self::Value) {
         self.value.set(v)
     }
@@ -49,23 +47,24 @@ impl<V: Value, F: Flag> Square for FlagSquare<IntType<V>, FlagType<F>>
         self.value.get()
     }
     fn exportv(&self) -> u8 {
-        u8::from(self.value)
+        self.value.clone().into()
+        //u8::from(self.value.clone())
     }
     fn has_flags(&self) -> bool { true }
     /// Does not set flags
-    fn new(v: u8, fix: bool) -> FlagSquare<IntType<V>, FlagType<F>> {
+    fn new(v: u8, fix: bool) -> Self {
         FlagSquare {
-            value: IntType::from(v),
+            value: Vt::from(v),
             fixed: fix,
-            flags: FlagType::default(),
+            flags: Ft::default(),
             count: 0,
         }
     }
 
     fn inc(&mut self) -> bool {
         // convert int to flag
-        let mut f:FlagType<F> = FlagType::from(self.value);
-        let old_copy = f;
+        let mut f:Ft = self.value.clone().into();
+        let old_copy = f.clone();
         // increment once
         let mut not_maxed = f.inc();
         // increment until matches possible in flag
@@ -74,7 +73,7 @@ impl<V: Value, F: Flag> Square for FlagSquare<IntType<V>, FlagType<F>>
         }
 
         if not_maxed {
-            if old_copy.flags != F::ZERO {
+            if old_copy != Ft::zero() {
                 //put back old value into possiblities
                 self.flags += old_copy;
                 self.count += 1;
@@ -83,83 +82,145 @@ impl<V: Value, F: Flag> Square for FlagSquare<IntType<V>, FlagType<F>>
             self.flags -= f;
             // Remove current value from possibilities
             self.count -= 1;
-            self.value = IntType::from(f);
+            self.value = Vt::from(f);
         }
         not_maxed
     }
 
     fn reset_value(&mut self) {
         // but back into possibilities
-        if self.value.get() != V::ZERO {
+        if self.value != Vt::zero() {
             self.count += 1;
-            self.flags += FlagType::from(self.value);
-        }
-        // Set to zero
-        self.value.reset()
-    }
-}
-
-impl<F: Flag + From<u8>> Square for FlagSquare<FlagType<F>, FlagType<F>>
-{
-    type Value = F;
-    fn fixed(&self) -> bool { self.fixed }
-    fn getv(&self) -> Self::Value {
-        self.value.get()
-    }
-    fn exportv(&self) -> u8 {
-        u8::from(self.value)
-    }
-    fn has_flags(&self) -> bool { true }
-    /// Does not set flags
-    fn new(v: u8, fix: bool) -> FlagSquare<FlagType<F>, FlagType<F>> {
-        FlagSquare {
-            value: FlagType::from(v),
-            fixed: fix,
-            flags: FlagType::default(),
-            count: 0,
-        }
-    }
-
-    fn inc(&mut self) -> bool {
-        // convert int to flag
-        let mut f:FlagType<F> = self.value.clone();
-        let old_copy = f.clone();
-        // increment onces
-        let mut not_maxed = f.inc();
-
-        // increment until matches possible in flag
-        while (self.flags & f).get() == F::ZERO && not_maxed {
-            not_maxed = f.inc();
-        }
-        if not_maxed {
-            if old_copy.flags != F::ZERO {
-                //put back into possiblities
-                self.flags += old_copy;
-                self.count += 1;
-            }
-            //remove from possiblities
-            self.flags -= f;
-            self.count -= 1;
-            // convert back
-            self.value = FlagType::from(f);
-        }
-        not_maxed
-    }
-
-    fn reset_value(&mut self) {
-        // but back into possibilities
-        if self.value.get() != F::ZERO {
-            self.count += 1;
-            self.flags += self.value;
+            self.flags += Ft::from(self.value);
         }
         // Set to zero
         self.value.reset()
     }
 
-    fn set(&mut self, v: Self::Value) {
-        self.value = FlagType::from(v)
-    }
 }
+
+// impl<V: Value, F: Flag> Square for FlagSquare<IntType<V>, FlagType<F>>
+// {
+//     type Value = V;
+//     fn set (&mut self, v: Self::Value) {
+//         self.value.set(v)
+//     }
+//     fn fixed(&self) -> bool { self.fixed }
+//     fn getv(&self) -> Self::Value {
+//         self.value.get()
+//     }
+//     fn exportv(&self) -> u8 {
+//         u8::from(self.value)
+//     }
+//     fn has_flags(&self) -> bool { true }
+//     /// Does not set flags
+//     fn new(v: u8, fix: bool) -> FlagSquare<IntType<V>, FlagType<F>> {
+//         FlagSquare {
+//             value: IntType::from(v),
+//             fixed: fix,
+//             flags: FlagType::default(),
+//             count: 0,
+//         }
+//     }
+//
+//     fn inc(&mut self) -> bool {
+//         // convert int to flag
+//         let mut f:FlagType<F> = FlagType::from(self.value);
+//         let old_copy = f;
+//         // increment once
+//         let mut not_maxed = f.inc();
+//         // increment until matches possible in flag
+//         while (!self.flags.is_flagged(f) && not_maxed) {
+//             not_maxed = f.inc();
+//         }
+//
+//         if not_maxed {
+//             if old_copy.flags != F::ZERO {
+//                 //put back old value into possiblities
+//                 self.flags += old_copy;
+//                 self.count += 1;
+//             }
+//             //remove from possiblities
+//             self.flags -= f;
+//             // Remove current value from possibilities
+//             self.count -= 1;
+//             self.value = IntType::from(f);
+//         }
+//         not_maxed
+//     }
+//
+//     fn reset_value(&mut self) {
+//         // but back into possibilities
+//         if self.value.get() != V::ZERO {
+//             self.count += 1;
+//             self.flags += FlagType::from(self.value);
+//         }
+//         // Set to zero
+//         self.value.reset()
+//     }
+// }
+//
+// impl<F: Flag + From<u8>> Square for FlagSquare<FlagType<F>, FlagType<F>>
+// {
+//     type Value = F;
+//     fn fixed(&self) -> bool { self.fixed }
+//     fn getv(&self) -> Self::Value {
+//         self.value.get()
+//     }
+//     fn exportv(&self) -> u8 {
+//         u8::from(self.value)
+//     }
+//     fn has_flags(&self) -> bool { true }
+//     /// Does not set flags
+//     fn new(v: u8, fix: bool) -> FlagSquare<FlagType<F>, FlagType<F>> {
+//         FlagSquare {
+//             value: FlagType::from(v),
+//             fixed: fix,
+//             flags: FlagType::default(),
+//             count: 0,
+//         }
+//     }
+//
+//     fn inc(&mut self) -> bool {
+//         // convert int to flag
+//         let mut f:FlagType<F> = self.value.clone();
+//         let old_copy = f.clone();
+//         // increment onces
+//         let mut not_maxed = f.inc();
+//
+//         // increment until matches possible in flag
+//         while (self.flags & f).get() == F::ZERO && not_maxed {
+//             not_maxed = f.inc();
+//         }
+//         if not_maxed {
+//             if old_copy.flags != F::ZERO {
+//                 //put back into possiblities
+//                 self.flags += old_copy;
+//                 self.count += 1;
+//             }
+//             //remove from possiblities
+//             self.flags -= f;
+//             self.count -= 1;
+//             // convert back
+//             self.value = FlagType::from(f);
+//         }
+//         not_maxed
+//     }
+//
+//     fn reset_value(&mut self) {
+//         // but back into possibilities
+//         if self.value.get() != F::ZERO {
+//             self.count += 1;
+//             self.flags += self.value;
+//         }
+//         // Set to zero
+//         self.value.reset()
+//     }
+//
+//     fn set(&mut self, v: Self::Value) {
+//         self.value = FlagType::from(v)
+//     }
+// }
 
 impl<V: Value> Square  for SimpleSquare<IntType<V>>
 {
@@ -192,6 +253,7 @@ impl<V: Value> Square  for SimpleSquare<IntType<V>>
     fn set(&mut self, v: Self::Value) {
         self.value.set(v)
     }
+
 }
 
 impl<F: Flag> Square for SimpleSquare<FlagType<F>> {
@@ -231,6 +293,7 @@ impl<F: Flag> Square for SimpleSquare<FlagType<F>> {
     fn reset_value(&mut self) {
         self.value.reset()
     }
+
 }
 #[cfg(test)]
 mod square_tests {

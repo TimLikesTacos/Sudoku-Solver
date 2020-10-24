@@ -11,9 +11,16 @@ mod sq_element;
  //mod support;
 // mod brute;
 mod square;
-mod grid;
-pub mod support;
-
+//mod grid;
+//pub mod support;
+#[cfg(test)]
+mod library_tests{
+    use super::*;
+    #[test]
+    fn start(){
+        assert!(true);
+    }
+}
 //mod square;
 
 // mod puzzle;
@@ -435,3 +442,4 @@ pub mod support;
 //         assert!(cell78.is_empty());
 //     }
 // }
+

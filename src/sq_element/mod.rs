@@ -1,11 +1,11 @@
 
 pub(crate) mod value;
 pub(crate) mod flag;
-pub mod flag_limits;
+pub(crate) mod flag_limits;
 
 use std::convert::TryFrom;
 use flag_limits::{IntLimits, FlagLimits};
-use std::ops::{Add, BitAnd};
+use std::ops::{Add, BitAnd, AddAssign, SubAssign};
 use crate::sq_element::value::Value;
 use crate::sq_element::flag::Flag;
 
@@ -20,18 +20,20 @@ pub struct IntType<V: Value> {
 }
 
 
-pub trait SqElement: Default + PartialEq {
+pub trait SqElement: Default + PartialEq + Into<u8> +From<u8>{
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
     fn get(&self) -> Self::Item;
     fn set(&mut self, value: Self::Item);
+    fn zero() -> Self;
+    fn one() -> Self;
 }
 
-pub trait FlElement: Default
+pub trait FlElement: SqElement + AddAssign + SubAssign
 where Self: Sized  {
-    type Item;
-    fn count_ones(flags: Self::Item) -> u8;
+    type FlagItem;
+    fn count_ones(flags: Self::FlagItem) -> u8;
     fn merge (&self, slice:&[Self]) -> Self;
     fn set_from_value <V: Value> (&mut self, v_slice: &[IntType<V>]);
     fn is_flagged (&self, other: Self) -> bool;
@@ -39,7 +41,7 @@ where Self: Sized  {
 
 
 impl <F:Flag> FlElement for FlagType<F> {
-    type Item = F;
+    type FlagItem = F;
     fn count_ones (flags: F) -> u8 {
         let mut f = flags;
         let mut count = 0;

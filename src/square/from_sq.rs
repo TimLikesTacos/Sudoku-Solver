@@ -3,6 +3,57 @@ use crate::sq_element::{SqElement, FlElement, IntType, FlagType};
 use crate::sq_element::value::Value;
 use crate::sq_element::flag::Flag;
 
+
+impl <V: Value> From<u8> for SimpleSquare<IntType<V>> {
+    fn from(v: u8) -> Self {
+        SimpleSquare {
+            value: IntType::from(v),
+            fixed: if v > 0 {true} else {false},
+        }
+    }
+}
+
+impl <V: Value> From<&u8> for SimpleSquare<IntType<V>> {
+    fn from(v: &u8) -> Self {
+        SimpleSquare {
+            value: IntType::from(v),
+            fixed: if *v > 0 {true} else {false},
+        }
+    }
+}
+
+impl <V: Value, Ft: FlElement + From<u8>> From<u8> for FlagSquare<IntType<V>, Ft> {
+    fn from(v: u8) -> Self {
+        FlagSquare {
+            value: IntType::from(v),
+            fixed: if v > 0 {true} else {false},
+            flags: Ft::from(0u8),
+            count: 0,
+        }
+    }
+}
+
+impl <F: Flag> From<u8> for SimpleSquare<FlagType<F>> {
+    fn from(v: u8) -> Self {
+        SimpleSquare {
+            value: FlagType::from(v),
+            fixed: if v > 0 {true} else {false},
+        }
+    }
+}
+
+impl <F: Flag, Ft: FlElement + From<u8>> From<u8> for FlagSquare<FlagType<F>, Ft> {
+    fn from(v: u8) -> Self {
+        FlagSquare {
+            value: FlagType::from(v),
+            fixed: if v > 0 {true} else {false},
+            flags: Ft::from(0),
+            count: 0,
+        }
+    }
+}
+
+
 /*
 *todo: Converts value of one type to usize, then to value type of another.  This is due to not being able
 *to implement from<intType<V1>> for IntType<V2> since the basic form of From<T> to <T> is ambiguous.
@@ -18,7 +69,6 @@ impl <Ft: FlElement, V1:Value, V2: Value> From<SimpleSquare<IntType<V1>>> for Fl
         }
     }
 }
-
 
 impl <Ft: FlElement, V1:Value, V2: Flag> From<SimpleSquare<IntType<V1>>> for FlagSquare<FlagType<V2>, Ft> {
     fn from(other: SimpleSquare<IntType<V1>>) -> Self {

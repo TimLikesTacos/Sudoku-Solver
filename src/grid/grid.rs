@@ -8,7 +8,7 @@ use crate::support::*;
 
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Grid<S> {
+pub struct Grid<S: Square> {
     pub(crate) grid: Vec<S>,
 }
 
@@ -36,9 +36,11 @@ impl <V1: SqElement, V2: SqElement, F: FlElement> From<Grid<FlagSquare<V2, F>>> 
 impl<S: SqElement + Clone> Grid<S>
 
 {
-    pub fn new() -> Grid<S> {
+    pub fn new<I: Iterator>(input_vec: I) -> Grid<S>
+        where S: From<I::Item>, I::Item: Clone
+    {
         Grid {
-            grid: vec![S::default(); NUM_CELLS],
+            grid: input_vec.map(|x| S::from(x.clone())).collect()
         }
     }
     /// Iterate over the entire 1-D row dominate grid vector
@@ -116,5 +118,48 @@ impl<S> Index<usize> for Grid<S> {
 impl<S> IndexMut<usize> for Grid<S> {
     fn index_mut<'a>(&'a mut self, i: usize) -> &'a mut S {
         &mut self.grid[i]
+    }
+}
+
+#[cfg(test)]
+mod Grid_Tests {
+
+    use super::*;
+    use crate::sq_element::{IntType, FlagType};
+    use crate::sq_element::*;
+    use crate::sq_element::value::*;
+    use crate::sq_element::flag::*;
+
+
+    #[test]
+    fn new_test() {
+        let vec: Vec<u8> = vec![9, 8, 7, 6, 5, 4, 3, 2, 1];
+        let grid: Grid<SimpleSquare<IntType<u8>>> = Grid::new(vec.iter());
+        let mut iter = grid.grid_iter();
+        assert_eq!(iter.next().unwrap().getv(), 9);
+        assert_eq!(iter.next().unwrap().getv(), 8);
+        assert_eq!(iter.next().unwrap().getv(), 7);
+        assert_eq!(iter.next().unwrap().getv(), 6);
+        assert_eq!(iter.next().unwrap().getv(), 5);
+        assert_eq!(iter.next().unwrap().getv(), 4);
+        assert_eq!(iter.next().unwrap().getv(), 3);
+        assert_eq!(iter.next().unwrap().getv(), 2);
+        assert_eq!(iter.next().unwrap().getv(), 1);
+        assert_eq!(iter.next(), Option::None);
+
+        let vec: Vec<u8> = vec![9, 8, 7, 6, 5, 4, 3, 2, 1];
+        let grid: Grid<FlagSquare<FlagType<u16>, FlagType<u16>>> = Grid::new(vec.iter());
+        let mut iter = grid.grid_iter();
+        assert_eq!(iter.next().unwrap().getv(), 0b100000000);
+        assert_eq!(iter.next().unwrap().getv(), 0b10000000);
+        assert_eq!(iter.next().unwrap().getv(), 0b1000000);
+        assert_eq!(iter.next().unwrap().getv(), 0b100000);
+        assert_eq!(iter.next().unwrap().getv(), 0b10000);
+        assert_eq!(iter.next().unwrap().getv(), 0b1000);
+        assert_eq!(iter.next().unwrap().getv(), 0b100);
+        assert_eq!(iter.next().unwrap().getv(), 0b10);
+        assert_eq!(iter.next().unwrap().getv(), 0b1);
+        assert_eq!(iter.next(), Option::None);
+
     }
 }

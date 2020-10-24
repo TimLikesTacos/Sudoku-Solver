@@ -46,6 +46,22 @@ impl <F:Flag> From<F> for FlagType<F> {
         }
     }
 }
+
+impl <F: Flag> From<FlagType<F>> for u8 {
+    fn from(item: FlagType<F>) -> u8 {
+
+        let mut count: u8 = 0;
+        let mut f = item.flags;
+        while f != F::ZERO {
+            f = f >> F::ONE;
+            count += 1;
+        }
+        count
+
+
+    }
+}
+
 impl <F: Flag> From<usize> for FlagType<F> {
     fn from(item: usize) -> FlagType<F> {
 
@@ -62,7 +78,6 @@ impl <F: Flag> From<usize> for FlagType<F> {
         }
     }
 }
-
 // Convert back to usize
 impl <F: Flag> From<FlagType<F>> for usize {
     fn from(item: FlagType<F>) -> usize {
@@ -78,45 +93,6 @@ impl <F: Flag> From<FlagType<F>> for usize {
 
     }
 }
-
-impl <F: Flag> From<FlagType<F>> for u8 {
-    fn from(item: FlagType<F>) -> u8 {
-
-        let mut count: u8 = 0;
-        let mut f = item.flags;
-        while f != F::ZERO {
-            f = f >> F::ONE;
-            count += 1;
-        }
-        count
-
-
-    }
-}
-// From u16 for Flagtype
-// impl <T: Flag + From<u16>> From<u16> for FlagType<T> {
-//     fn from(item: u16) -> FlagType<T> {
-//         if item == 0 {
-//             FlagType { flags: T::ZERO }
-//         } else {
-//             FlagType {
-//                 flags: T::ZERO << (T::from(item) - T::ZERO),
-//             }
-//         }
-//     }
-// }
-
-// impl From<u8> for FlagType<u16> {
-//     fn from(item: u8) -> FlagType<u16> {
-//         if item == 0 {
-//             FlagType { flags: 0 }
-//         } else {
-//             FlagType {
-//                 flags: 1 << (item - 1),
-//             }
-//         }
-//     }
-// }
 
 impl <T: Flag + From<u8>> From<u8> for FlagType<T> {
     fn from(item: u8) -> FlagType<T> {
@@ -141,7 +117,6 @@ impl From<i32> for FlagType<u16> {
         }
     }
 }
-
 
 impl From<FlagType<u16>> for u16 {
     fn from(item: FlagType<u16>) -> u16 {
@@ -188,6 +163,18 @@ impl <F: Flag> SqElement for FlagType<F> {
 
     fn set(&mut self, value: Self::Item) {
         self.flags = value;
+    }
+
+    fn zero() -> Self {
+        Self {
+            flags: F::ZERO
+        }
+    }
+
+    fn one() -> Self {
+        Self {
+            flags: F::ZERO
+        }
     }
 }
 

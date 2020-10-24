@@ -5,7 +5,7 @@ use std::convert::TryInto;
 
 // Organize all required traits into one for a value
 pub trait Value: Default + Debug + From<u8> + Copy + Clone + IntLimits + Add<Output = Self>
-    + Into<usize> + TryInto<u8> + PartialEq  + PartialOrd + TryFrom<i32> + TryFrom<usize> + TryFrom<u8>{}
+    + Into<usize> + TryInto<u8> + PartialEq  + PartialOrd + TryFrom<i32> + TryFrom<usize>{}
 impl Value for u8 {}
 impl Value for u16 {}
 
@@ -18,7 +18,7 @@ impl <V: Value> SqElement for IntType<V> {
             false
         } else {
             let old = self.value;
-            self.value = old + V::VONE;
+            self.value = old + V::ONE;
             true
         }
     }
@@ -33,6 +33,18 @@ impl <V: Value> SqElement for IntType<V> {
 
     fn set(&mut self, value: Self::Item) {
         self.value = value
+    }
+
+    fn zero() -> Self {
+        Self {
+            value: V::ZERO
+        }
+    }
+
+    fn one() -> Self {
+        Self {
+            value: V::ONE
+        }
     }
 }
 
@@ -49,21 +61,6 @@ impl <V: Value> From <IntType<V>> for u8 {
     }
 }
 
-// impl <V: Value> From <V> for IntType<V> {
-//     fn from(other: V) -> Self {
-//         IntType {
-//             value: other
-//         }
-//     }
-// }
-
-// impl <V: From<V2>, V2: Value> From <V> for IntType<V2> {
-//     fn from(other: V) -> Self {
-//         IntType {
-//             value: V2::from(other)
-//         }
-//     }
-// }
 impl <V: Value> From <usize> for IntType<V> {
     fn from (other: usize) -> Self {
         IntType {
@@ -71,6 +68,7 @@ impl <V: Value> From <usize> for IntType<V> {
         }
     }
 }
+
 impl <V: Value> From <i32> for IntType<V> {
     fn from (other: i32) -> Self {
         IntType {
@@ -78,7 +76,6 @@ impl <V: Value> From <i32> for IntType<V> {
         }
     }
 }
-
 
 impl <V: Value> From <u8> for IntType<V> {
     fn from (other: u8) -> Self {
@@ -88,6 +85,13 @@ impl <V: Value> From <u8> for IntType<V> {
     }
 }
 
+impl <V: Value> From <&u8> for IntType<V> {
+    fn from (other: &u8) -> Self {
+        IntType {
+            value: V::from(*other)
+        }
+    }
+}
 
 // Convert from flag to value.
 impl <V: Value, F: Flag> From <FlagType<F>> for IntType<V> {
@@ -111,7 +115,7 @@ impl <V: Value, F: Flag> From <FlagType<F>> for IntType<V> {
                 // Once true, always stays true.
                 multi_ones = if val & F::ONE == F::ONE {true} else {multi_ones};
                 val = val >> F::ONE;
-                tally = tally + V::VONE;
+                tally = tally + V::ONE;
                 assert!(tally <= V::VMAX, "Assumption in From<Flag<F>> to ValueType<V> incorrect");
             }
             IntType {
