@@ -23,61 +23,80 @@ type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>, SimpleSqua
 
 pub trait PuzzleTrait {
 
-    type BoardType;
-    type SolutionType;
     fn new(input_vec: Vec<u8>) -> Self;
-    fn set_initial_flags(&mut self);
-    fn get_solution(original: &Self::BoardType) -> Self::SolutionType;
     fn is_solved(&self) -> bool;
     //fn set_initial(&mut self, initial: Vec<u8>);
     fn reset_square(&mut self, index:usize);
 
 }
 
-impl <Unsolv, Solv> PuzzleTrait for Puzzle <Unsolv, Solv> where Solv: Square + PartialEq<Unsolv>, Unsolv: Square + From<u8> + PartialEq<Solv> {
-
-    type BoardType = Grid<Unsolv>;
-    type SolutionType = Solutions<Solv>;
+impl PuzzleTrait for SimpleSudoku
+    //Puzzle<SimpleSquare<IntType<u8>>, SimpleSquare<IntType<u8>>>
+{
 
     fn new(input_vec: Vec<u8>) -> Self {
-        let g: Grid<Unsolv> = Grid::new(input_vec);
-        if Unsolv::has_flags(){
-            g.set_initial_flags();
-        }
-        let sol = Self::get_solution(&g);
+        let g: Grid <SimpleSquare<IntType<u8>>>= Grid::new(input_vec);
+
+        let sol: Solutions = g.brute_solve();
         Puzzle {
             board: g,
             solution: sol,
         }
     }
 
-    fn set_initial_flags(&mut self) {
-        unimplemented!()
-        // do the following for each square.
-        for square in 0..MAX_NUM {
-            let v = self.board.single_iterator()
-                .fold(Unsolv::zero())
-        }
-    }
-    fn get_solution(original: &Self::BoardType) -> Self::SolutionType{
-        let mut copy = original.clone();
-        unimplemented!()
-        //copy.brute_force()
-    }
 
     fn is_solved(&self) -> bool {
-        match &self.solution {
-            Solutions::None => false,
-            Solutions::One(s) => if self.board == *s {true} else {false},
-            Solutions::Multi(esses) => esses.iter().any(|x| x == &self.board),
-        }
+        unimplemented!()
     }
-
 
     fn reset_square(&mut self, index: usize) {
         unimplemented!()
     }
 }
+
+// impl <Unsolv, Solv> PuzzleTrait for Puzzle <Unsolv, Solv>
+//     where Solv: Square + PartialEq<Unsolv>, Unsolv: Square + From<u8> + PartialEq<Solv> {
+//
+//     type BoardType = Grid<Unsolv>;
+//     type SolutionType = Solutions<Solv>;
+//
+//     fn new(input_vec: Vec<u8>) -> Self {
+//         let g: Grid<Unsolv> = Grid::new(input_vec);
+//         if Unsolv::has_flags(){
+//             g.set_initial_flags();
+//         }
+//         let sol = Self::get_solution(&g);
+//         Puzzle {
+//             board: g,
+//             solution: sol,
+//         }
+//     }
+//
+//     fn set_initial_flags(&mut self) {
+//         // do the following for each square.
+//         for square in 0..MAX_NUM {
+//             let p = self.board[square].set_initial(self.board.single_iterator(square));
+//         }
+//     }
+//     fn get_solution(original: &Self::BoardType) -> Self::SolutionType{
+//         let mut copy = original.clone();
+//         unimplemented!()
+//         //copy.brute_force()
+//     }
+//
+//     fn is_solved(&self) -> bool {
+//         match &self.solution {
+//             Solutions::None => false,
+//             Solutions::One(s) => if self.board == *s {true} else {false},
+//             Solutions::Multi(esses) => esses.iter().any(|x| x == &self.board),
+//         }
+//     }
+//
+//
+//     fn reset_square(&mut self, index: usize) {
+//         unimplemented!()
+//     }
+// }
 
 //
 // impl <'a, S: SquareTrait> PuzzleTrait <'a> for SimplePuzzle<S> {

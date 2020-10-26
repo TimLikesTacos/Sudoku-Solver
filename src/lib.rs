@@ -1,4 +1,4 @@
-// mod brute;
+// mod solve;
 // mod conv_input_output;
 // mod errors;
 // // mod human_calcs;
@@ -9,10 +9,13 @@ mod sq_element;
 // mod grid;
 // mod puzzle;
  //mod support;
-// mod brute;
+// mod solve;
 mod square;
+mod puzzle;
+mod grid;
 //mod grid;
-//pub mod support;
+pub mod support;
+mod solve;
 //mod puzzle;
 
 
@@ -29,8 +32,8 @@ mod library_tests{
 // mod puzzle;
 //mod conv_input_output;
 //
-// pub use crate::brute::BruteForce;
-// pub use crate::brute::*;
+// pub use crate::solve::BruteForce;
+// pub use crate::solve::*;
 // pub use crate::conv_input_output::*;
 // pub use crate::human_calcs::*;
 // pub use crate::support::*;

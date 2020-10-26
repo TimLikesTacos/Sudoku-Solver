@@ -1,46 +1,52 @@
 use crate::*;
-use crate::constants::*;
+use crate::grid::constants::*;
 use crate::puzzle::*;
 use crate::grid::*;
 use crate::square::*;
-use crate::flag::*;
+use crate::solve::solution_report::{SolutionReport, SolveTech, Solution};
+use crate::grid::valid::ValidEntry;
+
 
 /// Brute force solving.  Returns multiple solutions if they exist
-pub trait BruteForce {
+pub trait BruteForce
+    where Self::SquareType: Square
+{
     type SquareType;
-    fn brute_force_solve(&self) -> Solutions<Self::SquareType>;
+    fn brute_force_solve(&self) -> SolutionReport<Self::SquareType>;
     //fn valid_entry(&self, index: usize) -> bool;
 }
 
-impl <G: SquareTrait> BruteForce for SimplePuzzle<G> {
-    type SquareType = G;
+impl <S: Square, S2: Square> BruteForce for Puzzle<S, S2> {
+    type SquareType = S2;
 
 
     /// Solves the Sudoku puzzle.  Returns a vector of 1-D vectors.  Each 1-D vector represents a
     /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
-    fn brute_force_solve(&self) -> Solutions<G> {
-        let move_right =  |c| {
+    fn brute_force_solve(&self) -> SolutionReport<S2> {
+        let move_right =  |p, c| {
             let mut cur = c;
             loop {
                 match cur + 1 {
                     v if v >= NUM_CELLS => return None,
                     v => cur = v,
                 }
-                if !(self.grid[cur].fixed()){
+                if !(p[cur].fixed()){
                     break;
                 }
             }
             Some(cur)
         };
 
-        let mut puz = self.grid.clone();
-        let mut position: usize = 0;
-        // Stores solutions
+        let mut guesses: usize = 0;
         let mut to_return: Vec<Grid<Self::SquareType>> = Vec::new();
 
+        let mut puz: Grid<S> = self.board.clone();
+        let mut position: usize = 0;
+        // Stores solutions
+
         // move position to non-fixed point
-        if puz.grid[position].fixed() {
-            position = match move_right(position) {
+        if puz[position].fixed() {
+            position = match move_right(puz, position) {
                 Some(v) => v,
                 None => MAX_NUM - 1,
             };
@@ -59,28 +65,32 @@ impl <G: SquareTrait> BruteForce for SimplePuzzle<G> {
                 if position == NUM_CELLS - 1 {
                     //dbg!(usize::from(position), back_marker);
                     // Copy cell numbers into a new vector to be added to the solutions.
-                    let solution = puz.clone();
+                    let solution:Grid<Self::SquareType> = puz.clone();
                     to_return.push(solution);
 
 
                     // reset all after backmarker
                     while position > back_marker {
                         // reset starting position, but not the backmarker
-                        puz.grid[position].reset_value();
+                        puz[position].reset_value();
                         position = match position.checked_sub(1) {
                             Some(v) => v,
-                            None => match to_return.len() {
-                                0 => return Solutions::None,
-                                1 => return Solutions::One(to_return[0].clone()),
-                                _ => return Solutions::Multi(to_return),
-                            },
+                            None => {
+                                let tech= vec![SolveTech::Guesses(guesses)];
+                                match to_return.len() {
+                                    0 => return SolutionReport::new(Solution::None, tech),
+                                    1 => return SolutionReport::new(Solution::One(to_return[0].clone()), tech),
+                                    _ => return SolutionReport::new(Solution::Multi(to_return), tech)
+                                }
+                            }
                         }
                     }
+
                     assert_eq!(position, back_marker);
                     //increment the position
 
-                    while !puz.grid[position].inc() {
-                        puz.grid[position].reset();
+                    while !puz[position].inc() {
+                        puz[position].reset();
                         position = match position.checked_sub(1) {
                             Some(v) => v,
                             None => break 'solving,
@@ -88,6 +98,8 @@ impl <G: SquareTrait> BruteForce for SimplePuzzle<G> {
 
                         back_marker = position;
                     }
+                    guesses += 1;
+
                 } else {
                     // if valid but not solved,
                     // move to next non-fixed position
@@ -101,27 +113,31 @@ impl <G: SquareTrait> BruteForce for SimplePuzzle<G> {
                     };
 
                     // Increment the position, if possible
-                    puz.grid[position].inc();
+                    if puz[position].inc() {
+                        guesses += 1;
+                    }
                 }
             } else {
                 // if not valid
                 // if not at max
                 // increment position
-                while !puz.grid[position].inc() {
+                while !puz[position].inc() {
                     // else reset position
                     // move position to next previous non-fixed
-                    puz.grid[position].reset();
+                    puz[position].reset();
                     position = match position.checked_sub(1) {
                         Some(v) => v,
                         None => break 'solving,
                     };
                 }
+                guesses +=1;
             }
         }
+        let tech= vec![SolveTech::Guesses(guesses)];
         match to_return.len() {
-            0 => return Solutions::None,
-            1 => return Solutions::One(to_return[0].clone()),
-            _ => return Solutions::Multi(to_return),
+            0 => return SolutionReport::new(Solution::None, tech),
+            1 => return SolutionReport::new(Solution::One(to_return[0].clone()), tech),
+            _ => return SolutionReport::new(Solution::Multi(to_return), tech)
         }
     }
 }
@@ -129,6 +145,7 @@ impl <G: SquareTrait> BruteForce for SimplePuzzle<G> {
 #[cfg(test)]
 pub mod brute_unit {
     use super::*;
+    use crate::sq_element::{FlagType, IntType};
 
     fn get_example() -> Vec<Vec<u8>> {
         vec![
@@ -159,8 +176,8 @@ pub mod brute_unit {
             vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
             vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
         ])
-        .as_input()
-        .unwrap();
+            .as_input()
+            .unwrap();
 
         let res = Puzzle::new()
             .set_initial(example.as_input().unwrap())
@@ -194,8 +211,8 @@ pub mod brute_unit {
             vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
             vec![1, 5, 4, 9, 3, 8, 6, 7, 2],
         ])
-        .as_input()
-        .unwrap();
+            .as_input()
+            .unwrap();
 
         let expected2: Vec<u8> = (vec![
             vec![2, 9, 5, 7, 4, 3, 8, 6, 1],
@@ -208,8 +225,8 @@ pub mod brute_unit {
             vec![9, 2, 8, 6, 7, 1, 3, 5, 4],
             vec![1, 5, 4, 9, 3, 8, 6, 2, 7],
         ])
-        .as_input()
-        .unwrap();
+            .as_input()
+            .unwrap();
 
         let res = Puzzle::new_from_vec(example.as_input().unwrap())
             .brute_force_solve();
@@ -237,7 +254,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let mut puz: Puzzle<FlagSquare<Flag<u16>, u16>, SimpleSquare<u16>> = Puzzle::new_from_vec(example.as_input().unwrap());
+        let mut puz: Puzzle<FlagSquare<IntType<u16>, FlagType<u16>>, SimpleSquare<IntType<u16>>> = Puzzle::new_from_vec(example.as_input().unwrap());
         let res = puz.brute_force_solve();
 
 
@@ -255,7 +272,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let mut puz: Puzzle<FlagSquare<Flag<u16>, u16>, SimpleSquare<u16>> = Puzzle::new_from_vec(example.as_input().unwrap());
+        let mut puz: Puzzle<FlagSquare<IntType<u16>, FlagType<u16>>, SimpleSquare<IntType<u16>>> = Puzzle::new_from_vec(example.as_input().unwrap());
 
         let res = puz.brute_force_solve();
 

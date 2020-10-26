@@ -369,7 +369,7 @@
 //                         IterResult::Single(ind) => {
 //                             if fill {
 //                                 self.cells[ind].set(val);
-//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if brute force is also used.
+//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if solve force is also used.
 //                                 self.cells[ind].fixed = true;
 //                                 update_pencil_after_add(self, ind);
 //                             }
@@ -396,7 +396,7 @@
 //                         IterResult::Single(ind) => {
 //                             if fill {
 //                                 self.cells[ind].set(val);
-//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if brute force is also used.
+//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if solve force is also used.
 //                                 self.cells[ind].fixed = true;
 //                                 update_pencil_after_add(self, ind);
 //                             }
@@ -425,7 +425,7 @@
 //                         IterResult::Single(ind) => {
 //                             if fill {
 //                                 self.cells[ind].set(val);
-//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if brute force is also used.
+//                                 // Either make the cell fixed, or don't remove pencil marks.  Causes issues if solve force is also used.
 //                                 self.cells[ind].fixed = true;
 //                                 update_pencil_after_add(self, ind);
 //                             }
@@ -853,7 +853,7 @@
 //         assert!(res.contains(&(get_cell(3, 5), 1)));
 //
 //         /* This puzzle does not get completely solved using this method.
-//          * The remaining portion of the puzzle with be brute forced solved to ensure that the solving is correct
+//          * The remaining portion of the puzzle with be solve forced solved to ensure that the solving is correct
 //          */
 //         let finished = puz.brute_force_solve();
 //         assert_eq!(finished.len(), 1);
@@ -901,7 +901,7 @@
 //         assert!(res.contains(&(get_cell(3, 5), 1)));
 //
 //         /* This puzzle does not get completely solved using this method.
-//          * The remaining portion of the puzzle with be brute forced solved to ensure that the solving is correct
+//          * The remaining portion of the puzzle with be solve forced solved to ensure that the solving is correct
 //          */
 //         let finished = puz.brute_force_solve();
 //         assert_eq!(finished.len(), 1);

@@ -45,7 +45,8 @@ impl <F: Flag> OneZero for FlagType<F> {
     }
 }
 
-pub trait SqElement: OneZero + Default + PartialEq + Into<u8> +From<u8> + Copy + Clone{
+pub trait SqElement: OneZero + Default + PartialEq + Into<u8> +From<u8> + Copy + Clone
+{
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset (&mut self);
@@ -55,19 +56,20 @@ pub trait SqElement: OneZero + Default + PartialEq + Into<u8> +From<u8> + Copy +
 }
 
 pub trait FlElement: SqElement + AddAssign + SubAssign
-where Self: Sized  {
+where Self: Sized, Self::FlagItem: FlagLimits + Flag  {
     type FlagItem;
-    fn count_ones(flags: Self::FlagItem) -> u8;
+    fn count_ones(flags: &Self::FlagItem) -> u8;
     fn merge (&self, slice:&[Self]) -> Self;
     fn set_from_value <V: NormalInt> (&mut self, v_slice: &[IntType<V>]);
     fn is_flagged (&self, other: Self) -> bool;
+    fn max()-> Self;
 }
 
 
 impl <F:Flag> FlElement for FlagType<F> {
     type FlagItem = F;
-    fn count_ones (flags: F) -> u8 {
-        let mut f = flags;
+    fn count_ones (flags: &Self::FlagItem) -> u8 {
+        let mut f = *flags;
         let mut count = 0;
         while f > F::ZERO {
             f = f & (f - F::ONE);
@@ -91,6 +93,10 @@ impl <F:Flag> FlElement for FlagType<F> {
         if self.flags & other.flags > F::ZERO {
             true
         } else {false}
+    }
+
+    fn max() -> Self {
+        Self {flags: F::FMAX}
     }
 
 
