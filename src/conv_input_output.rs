@@ -1,6 +1,7 @@
-use crate::constants::*;
+use crate::grid::constants::*;
 use crate::errors::SudError;
 use crate::errors::SudError::OutputParse;
+
 
 /// This is used to generate the vector to initially set the puzzle, along with convert the vector to desired output
 pub trait PuzInput<V> {

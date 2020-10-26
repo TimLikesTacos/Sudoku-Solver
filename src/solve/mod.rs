@@ -1,2 +1,2 @@
 pub mod brute;
-mod solution_report;
+pub mod solution_report;

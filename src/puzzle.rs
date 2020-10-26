@@ -1,6 +1,8 @@
 use crate::grid::*;
 use crate::sq_element::*;
 use crate::square::*;
+use crate::solve::brute::BruteForce;
+use crate::solve::solution_report::*;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
@@ -10,18 +12,19 @@ pub enum Solutions<G: Square> {
 }
 
 
-pub struct Puzzle<Unsolv: Square, Solv: Square> {
-    pub(crate) board: Grid<Unsolv>,
-    pub(crate) solution: Solutions<Solv>,
+pub struct Puzzle<S: Square> {
+    pub(crate) board: Grid<S>,
+    pub(crate) solution: SolutionReport<S>,
 }
 
-type SimpleSudoku  = Puzzle<SimpleSquare<IntType<u8>>, SimpleSquare<IntType<u8>>>;
-type RegSudoku     = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>, SimpleSquare<IntType<u8>>>;
-type RegFlagSudoku = Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>, SimpleSquare<IntType<u8>>>;
-type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>, SimpleSquare<IntType<u8>>>;
+type SimpleSudoku  = Puzzle<SimpleSquare<IntType<u8>>>;
+type RegSudoku     = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>>;
+type RegFlagSudoku = Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>>;
+type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>>;
 
 
-pub trait PuzzleTrait {
+pub trait PuzzleTrait <S: Square>: BruteForce<S>
+{
 
     fn new(input_vec: Vec<u8>) -> Self;
     fn is_solved(&self) -> bool;
@@ -30,18 +33,18 @@ pub trait PuzzleTrait {
 
 }
 
-impl PuzzleTrait for SimpleSudoku
-    //Puzzle<SimpleSquare<IntType<u8>>, SimpleSquare<IntType<u8>>>
+impl <S: Square> PuzzleTrait<S> for Puzzle<S>
 {
-
     fn new(input_vec: Vec<u8>) -> Self {
-        let g: Grid <SimpleSquare<IntType<u8>>>= Grid::new(input_vec);
 
-        let sol: Solutions = g.brute_solve();
-        Puzzle {
+        let g: Grid<S>= Grid::new(input_vec);
+        let mut p = Puzzle {
             board: g,
-            solution: sol,
-        }
+            solution: SolutionReport::default(),
+        };
+        let sol = p.brute_force_solve();
+        p.solution = sol;
+        p
     }
 
 

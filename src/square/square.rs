@@ -22,7 +22,7 @@ pub struct SimpleSquare<E: SqElement> {
 
 pub trait  Square: PartialEq + Clone
     where Self::Element: SqElement,
-       Self::Value:  Sized
+       Self::Value:  Sized + PartialEq
 {
     type Element;
     type Value;
@@ -67,6 +67,9 @@ impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for 
     }
 
     fn inc(&mut self) -> bool {
+        if self.fixed {
+            return false;
+        }
         // convert int to flag
         let mut f:Ft = self.value.clone().into();
         let old_copy = f.clone();
@@ -134,7 +137,11 @@ where IntType<V>: SqElement<Item = V>
     }
 
     fn inc(&mut self) -> bool {
-        self.value.inc()
+        if self.fixed {
+            false
+        } else {
+            self.value.inc()
+        }
     }
 
     fn reset_value(&mut self) {

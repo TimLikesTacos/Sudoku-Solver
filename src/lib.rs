@@ -16,6 +16,8 @@ mod grid;
 //mod grid;
 pub mod support;
 mod solve;
+mod conv_input_output;
+mod errors;
 //mod puzzle;
 
 

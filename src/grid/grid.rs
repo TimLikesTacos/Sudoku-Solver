@@ -55,10 +55,16 @@ impl<S: Square + Clone> Grid<S>
 
 {
     pub fn new(input_vec: Vec<u8>) -> Grid<S>
-        where S: Square + From<u8>
+        where S: Square
     {
         Grid {
-            grid: input_vec.iter().map(|x| S::from(*x)).collect()
+            grid: input_vec.iter().map(|x| {
+                if *x == 0 {
+                    S::new(*x, false)
+                } else {
+                    S::new(*x, true)
+                }
+            }).collect()
         }
     }
     /// Iterate over the entire 1-D row dominate grid vector
