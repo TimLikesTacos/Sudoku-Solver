@@ -11,7 +11,7 @@ pub trait ValidEntry {
 impl <S: Square> ValidEntry for Grid<S> {
     fn valid_entry(&self, index: usize) -> bool {
         let v = self.grid[index].getv();
-        if self.grid.iter().filter(|x|x.getv() == v).count() > 3 {
+        if self.single_iterator(index).filter(|x|x.getv() == v).count() > 3 {
             false
         } else {
             true

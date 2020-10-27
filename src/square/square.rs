@@ -96,6 +96,9 @@ impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for 
     }
 
     fn reset_value(&mut self) {
+        if self.fixed() {
+            return;
+        }
         // but back into possibilities
         if self.value != Vt::zero() {
             self.count += 1;
@@ -145,7 +148,11 @@ where IntType<V>: SqElement<Item = V>
     }
 
     fn reset_value(&mut self) {
-        self.value.reset()
+
+        if !self.fixed {
+            self.value.reset()
+        }
+
     }
 
     fn set(&mut self, v: Self::Value) {
@@ -195,11 +202,17 @@ where FlagType<F>: SqElement<Item = F>
     }
 
     fn inc(&mut self) -> bool {
-        self.value.inc()
+        if !self.fixed {
+            false
+        } else {
+            self.value.inc()
+        }
     }
 
     fn reset_value(&mut self) {
-        self.value.reset()
+        if !self.fixed {
+            self.value.reset()
+        }
     }
 
     fn zero() -> Self::Value {

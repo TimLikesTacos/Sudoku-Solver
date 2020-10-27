@@ -182,6 +182,58 @@ pub mod brute_unit {
 
         let res: Puzzle<SimpleSquare<IntType<u8>>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
+        let sol = res.solution.get_solution();
+        assert!(match sol {
+            Solution::One(v) => {
+                assert!(v.grid_iter().zip(expected.iter()).all(|(v, e)| v.exportv() == *e));
+                true
+            }
+            _ => false,
+        });
+
+        let res: Puzzle<SimpleSquare<FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+        assert_eq!(res.solution.num_solutions(), 1);
+        let sol = res.solution.get_solution();
+        assert!(match sol {
+            Solution::One(v) => {
+                assert!(v.grid_iter().zip(expected.iter()).all(|(v, e)| v.exportv() == *e));
+                true
+            }
+            _ => false,
+        });
+
+        let res: Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+        assert_eq!(res.solution.num_solutions(), 1);
+        let sol = res.solution.get_solution();
+        assert!(match sol {
+            Solution::One(v) => {
+                assert!(v.grid_iter().zip(expected.iter()).all(|(v, e)| v.exportv() == *e));
+                true
+            }
+            _ => false,
+        });
+
+        let res: Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+        assert_eq!(res.solution.num_solutions(), 1);
+        let sol = res.solution.get_solution();
+        assert!(match sol {
+            Solution::One(v) => {
+                assert!(v.grid_iter().zip(expected.iter()).all(|(v, e)| v.exportv() == *e));
+                true
+            }
+            _ => false,
+        });
+
+        let res: Puzzle<FlagSquare<IntType<u16>, FlagType<u32>>> = Puzzle::new(example.as_input().unwrap());
+        assert_eq!(res.solution.num_solutions(), 1);
+        let sol = res.solution.get_solution();
+        assert!(match sol {
+            Solution::One(v) => {
+                assert!(v.grid_iter().zip(expected.iter()).all(|(v, e)| v.exportv() == *e));
+                true
+            }
+            _ => false,
+        });
 
     }
 

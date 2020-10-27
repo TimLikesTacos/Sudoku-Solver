@@ -47,4 +47,5 @@ impl <S: Square> SolutionReport <S>{
     pub fn tech_iter (&self) -> impl Iterator<Item=&SolveTech> {
         self.data.iter()
     }
+    pub fn get_solution(&self) -> &Solution<S> {&self.sol}
 }
