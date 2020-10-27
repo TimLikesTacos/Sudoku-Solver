@@ -5,7 +5,13 @@ use crate::sq_element::value::NormalInt;
 
 pub trait FlagUpdate {
     fn set_initial<'a> (&'a mut self, it: impl Iterator<Item = &'a Self>);
-    fn add_flag(&mut self, E: impl SqElement);
+   // fn add_flag(&mut self, e: impl SqElement);
+}
+
+impl <S:SqElement> FlagUpdate for SimpleSquare<S>
+{
+    fn set_initial<'a> (&'a mut self, it: impl Iterator<Item = &'a Self>) {}
+    //fn add_flag(&mut self, e: IntType<S::Element>) {}
 }
 
 impl <F1:Flag, F2: Flag> FlagUpdate for FlagSquare<FlagType<F1>, FlagType<F2>>
@@ -16,9 +22,9 @@ where FlagType<F1>: From<FlagType<F2>>, FlagType<F2>: FlElement<FlagItem=F2, Ite
         self.count = FlagType::count_ones(&self.flags.get());
     }
 
-    fn add_flag(&mut self, E: impl SqElement) {
-        unimplemented!()
-    }
+    // fn add_flag(&mut self, e: impl SqElement) {
+    //     unimplemented!()
+    // }
 }
 
 impl <V: NormalInt, F2: Flag> FlagUpdate for FlagSquare<IntType<V>, FlagType<F2>>
@@ -29,9 +35,9 @@ impl <V: NormalInt, F2: Flag> FlagUpdate for FlagSquare<IntType<V>, FlagType<F2>
         self.count = FlagType::count_ones(&self.flags.get());
     }
 
-    fn add_flag(&mut self, E: impl SqElement) {
-        unimplemented!()
-    }
+    // fn add_flag(&mut self, e: impl SqElement) {
+    //     unimplemented!()
+    // }
 }
 
 #[cfg(test)]

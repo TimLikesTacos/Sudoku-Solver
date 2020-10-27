@@ -1,10 +1,10 @@
 use crate::sq_element::*;
 use crate::sq_element::flag::Flag;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::convert::TryInto;
 
 // Organize all required traits into one for a value
-pub trait NormalInt: Default + Debug + From<u8> + Copy + Clone + IntLimits + Add<Output = Self>
+pub trait NormalInt: Default + Display + Debug + From<u8> + Copy + Clone + IntLimits + Add<Output = Self>
     + Into<usize> + TryInto<u8> + PartialEq  + PartialOrd + TryFrom<i32> + TryFrom<usize>{}
 impl NormalInt for u8 {}
 impl NormalInt for u16 {}
@@ -116,7 +116,10 @@ impl <V: NormalInt, F: Flag> From <FlagType<F>> for IntType<V> {
                 multi_ones = if val & F::ONE == F::ONE {true} else {multi_ones};
                 val = val >> F::ONE;
                 tally = tally + V::ONE;
-                assert!(tally <= V::VMAX, "Assumption in From<Flag<F>> to ValueType<V> incorrect");
+                if tally == V::from(10) {
+                    dbg!(&other.flags);
+                }
+                assert!(tally <= V::VMAX, format!("Assumption in From<Flag<F>> to ValueType<V> incorrect: {}", tally));
             }
             IntType {
                 value: tally

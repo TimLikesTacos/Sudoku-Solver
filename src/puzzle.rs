@@ -3,6 +3,7 @@ use crate::sq_element::*;
 use crate::square::*;
 use crate::solve::brute::BruteForce;
 use crate::solve::solution_report::*;
+use crate::square::flag_update::FlagUpdate;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
@@ -33,11 +34,12 @@ pub trait PuzzleTrait <S: Square>: BruteForce<S>
 
 }
 
-impl <S: Square> PuzzleTrait<S> for Puzzle<S>
+impl <S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S>
 {
     fn new(input_vec: Vec<u8>) -> Self {
 
-        let g: Grid<S>= Grid::new(input_vec);
+        let g: Grid<S>;
+        g = Grid::new( input_vec);
         let mut p = Puzzle {
             board: g,
             solution: SolutionReport::default(),

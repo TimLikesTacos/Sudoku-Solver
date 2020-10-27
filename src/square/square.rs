@@ -3,7 +3,7 @@ use crate::sq_element::*;
 use crate::sq_element::flag_limits::*;
 use crate::sq_element::value::NormalInt;
 use crate::sq_element::flag::Flag;
-
+use crate::square::flag_update::FlagUpdate;
 
 
 #[derive(Copy, Clone, Debug, Default)]
@@ -202,7 +202,7 @@ where FlagType<F>: SqElement<Item = F>
     }
 
     fn inc(&mut self) -> bool {
-        if !self.fixed {
+        if self.fixed {
             false
         } else {
             self.value.inc()

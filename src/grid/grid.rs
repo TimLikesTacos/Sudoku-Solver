@@ -3,6 +3,7 @@ use crate::square::{Square, FlagSquare, SimpleSquare};
 use crate::sq_element::{SqElement, FlElement};
 use std::ops::{Index, IndexMut};
 use crate::support::*;
+use crate::square::flag_update::FlagUpdate;
 
 
 #[derive(Clone, Debug)]
@@ -10,6 +11,49 @@ pub struct Grid<S: Square> {
     pub(crate) grid: Vec<S>,
 }
 
+// pub trait  NewGrid <S: Square>{
+//     fn new (&self, v: Vec<u8>) -> Grid <S>{
+//         Grid {
+//             grid: v.iter().map(|x| {
+//                 if *x == 0 {
+//                     S::new(*x, false)
+//                 } else {
+//                     S::new(*x, true)
+//                 }
+//             }).collect()
+//         }
+//     }
+// }
+
+// impl <V: SqElement> NewGrid<SimpleSquare<V>> for Grid<SimpleSquare<V>>
+// where SimpleSquare<V>: Square{
+//
+//     fn new (v: Vec<u8>) -> Self {
+//         Grid {
+//             grid: input_vec.iter().map(|x| {
+//                 if *x == 0 {
+//                     S::new(*x, false)
+//                 } else {
+//                     S::new(*x, true)
+//                 }
+//             }).collect()
+//         }
+//     }
+// }
+
+// impl <V: SqElement, F: FlElement> NewGrid<FlagSquare<V, F>> for Grid<FlagSquare<V, F>>
+//  where FlagSquare<V, F>: FlagUpdate + Square{
+//     fn new (&self, v: Vec<u8>) -> Grid<FlagSquare<V, F>> {
+//         let mut n = NewGrid::new(v);
+//         for i in 0..MAX_NUM{
+//             let it = n.single_iterator(i);
+//             let mut copy = n[i];
+//             copy.set_initial(it);
+//             n[i] = copy;
+//         }
+//         n
+//     }
+// }
 impl <V1: SqElement, V2: SqElement + From<F> + Copy, F: FlElement + From<V2> + Copy> From<Grid<SimpleSquare<V1>>> for Grid<FlagSquare<V2, F>>
     where FlagSquare<V2, F>: From<SimpleSquare<V1>>, SimpleSquare<V1>: Square + Copy{
     fn from(other: Grid<SimpleSquare<V1>>) -> Self {
@@ -55,9 +99,9 @@ impl<S: Square + Clone> Grid<S>
 
 {
     pub fn new(input_vec: Vec<u8>) -> Grid<S>
-        where S: Square
+        where S: Square + FlagUpdate
     {
-        Grid {
+        let mut g = Grid {
             grid: input_vec.iter().map(|x| {
                 if *x == 0 {
                     S::new(*x, false)
@@ -65,7 +109,16 @@ impl<S: Square + Clone> Grid<S>
                     S::new(*x, true)
                 }
             }).collect()
+        };
+        if S::has_flags() {
+            for i in 0..NUM_CELLS{
+                let it = g.single_iterator(i);
+                let mut copy = g[i].clone();
+                copy.set_initial(it);
+                g[i] = copy;
+            }
         }
+        g
     }
     /// Iterate over the entire 1-D row dominate grid vector
     pub fn grid_iter (&self) -> impl Iterator <Item= &S>{

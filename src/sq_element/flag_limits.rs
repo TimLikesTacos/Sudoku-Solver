@@ -32,11 +32,14 @@ pub trait FlagLimits: ZeroAndOne {
     const FMAX: Self;
 }
 impl FlagLimits for u16 {
-    const VMAX: Self = 0b100000000;
+    const VMAX: Self = 0b100_000_000;
     const FMAX: Self = 0b111111111;
 }
 
+/*
+todo: These values are hard coded for 9x9 normal style sudoku.  This needs to be reworked for larger puzzles
+ */
 impl FlagLimits for u32 {
-    const VMAX: Self = 0b1000000000000000;
-    const FMAX: Self = 0b1111111111111111;
+    const VMAX: Self = 0b100_000_000;
+    const FMAX: Self = 0b111_111_111;
 }

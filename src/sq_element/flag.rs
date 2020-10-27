@@ -150,6 +150,13 @@ impl <F: Flag> SqElement for FlagType<F> {
         } else {
             let old = self.flags;
             self.flags = old << F::ONE;
+            // /** Debug **/
+            // let b = self.get();
+            // if b > F::from(255) {
+            //     let max = F::VMAX;
+            //     dbg!(&self.flags);
+            // }
+            // /** End Debug **/
             true
         }
     }
