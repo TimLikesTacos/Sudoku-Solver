@@ -1,7 +1,6 @@
-use crate::grid::constants::*;
 use crate::errors::SudError;
 use crate::errors::SudError::OutputParse;
-
+use crate::grid::constants::*;
 
 /// This is used to generate the vector to initially set the puzzle, along with convert the vector to desired output
 pub trait PuzInput<V> {
@@ -138,13 +137,14 @@ mod input_tests {
         let str =
             "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79";
 
-        let expected: Vec<u16> = vec![
+        let expected: Vec<u32> = vec![
             5, 3, 0, 0, 7, 0, 0, 0, 0, 6, 0, 0, 1, 9, 5, 0, 0, 0, 0, 9, 8, 0, 0, 0, 0, 6, 0, 8, 0,
             0, 0, 6, 0, 0, 0, 3, 4, 0, 0, 8, 0, 3, 0, 0, 1, 7, 0, 0, 0, 2, 0, 0, 0, 6, 0, 6, 0, 0,
             0, 0, 2, 8, 0, 0, 0, 0, 4, 1, 9, 0, 0, 5, 0, 0, 0, 0, 8, 0, 0, 7, 9,
         ];
 
-        //assert_eq!(str.as_input::<u16>().unwrap(), expected);
+        let res: Vec<u32> = str.as_input().unwrap();
+        assert_eq!(res, expected);
 
         let str =
             "53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..9";

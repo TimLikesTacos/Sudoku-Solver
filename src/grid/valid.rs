@@ -1,22 +1,24 @@
 use crate::grid::*;
-use crate::square::{SimpleSquare, FlagSquare, Square};
-use crate::sq_element::{SqElement, FlElement};
-
+use crate::square::Square;
 
 pub trait ValidEntry {
     /// Determines if the value at the called index is valid based on associated cells in box, row, and col.
-    fn valid_entry(&self, index:usize) -> bool;
+    fn valid_entry(&self, index: usize) -> bool;
 }
 
-impl <S: Square> ValidEntry for Grid<S> {
+impl<S: Square> ValidEntry for Grid<S> {
     fn valid_entry(&self, index: usize) -> bool {
         let v = self.grid[index].getv();
-        if self.single_iterator(index).filter(|x|x.getv() == v).count() > 3 {
+        if self
+            .single_iterator(index)
+            .filter(|x| x.getv() == v)
+            .count()
+            > 3
+        {
             false
         } else {
             true
         }
-
     }
 }
 // impl <S: SqElement + PartialEq> ValidEntry for Grid<SimpleSquare<S>>

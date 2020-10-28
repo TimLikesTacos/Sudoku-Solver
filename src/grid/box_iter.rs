@@ -1,7 +1,6 @@
-
+use crate::grid::*;
 use std::iter::Skip;
 use std::slice::{Iter, IterMut};
-use crate::grid::*;
 
 /// Struct to handle iterating over a 3x3 box (for standard game size grid).
 pub struct BoxIter<'a, T> {

@@ -1,24 +1,24 @@
 const MAX_NUM: u8 = 9;
 
 /// Sets limits for types that are used as Integers
-pub trait ZeroAndOne{
+pub trait ZeroAndOne {
     const ZERO: Self;
-    const ONE : Self;
+    const ONE: Self;
 }
-impl ZeroAndOne for u8{
+impl ZeroAndOne for u8 {
     const ONE: Self = 1u8;
     const ZERO: Self = 0u8;
 }
-impl ZeroAndOne for u16{
+impl ZeroAndOne for u16 {
     const ONE: Self = 1u16;
     const ZERO: Self = 0u16;
 }
-impl ZeroAndOne for u32{
+impl ZeroAndOne for u32 {
     const ONE: Self = 1u32;
     const ZERO: Self = 0u32;
 }
 pub trait IntLimits: ZeroAndOne {
-    const VMAX:  Self;
+    const VMAX: Self;
 }
 impl IntLimits for u8 {
     const VMAX: Self = MAX_NUM;

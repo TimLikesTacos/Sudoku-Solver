@@ -1,14 +1,28 @@
 use crate::sq_element::*;
-use std::convert::{TryFrom};
+use std::convert::TryFrom;
 use std::fmt::Debug;
-use std::ops::{Shl, Shr, BitAnd, Sub, BitOr, BitXor, AddAssign, SubAssign};
+use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
 
-
-
-pub trait Flag: Default + Copy + Debug + Clone + FlagLimits + Add<Output = Self>
-     + Sub<Output = Self> + PartialEq + PartialOrd + Into<u64> + From<u8>
-     + TryFrom<usize> + BitAnd<Output = Self>
-     + Shr<Output = Self> + Shl<Output = Self> + BitOr<Output = Self> + BitXor <Output = Self> {}
+pub trait Flag:
+    Default
+    + Copy
+    + Debug
+    + Clone
+    + FlagLimits
+    + Add<Output = Self>
+    + Sub<Output = Self>
+    + PartialEq
+    + PartialOrd
+    + Into<u64>
+    + From<u8>
+    + TryFrom<usize>
+    + BitAnd<Output = Self>
+    + Shr<Output = Self>
+    + Shl<Output = Self>
+    + BitOr<Output = Self>
+    + BitXor<Output = Self>
+{
+}
 
 impl Flag for u16 {}
 impl Flag for u32 {}
@@ -30,15 +44,14 @@ impl Flag for u32 {}
 //     }
 // }
 
-impl <F:Flag> From<F> for FlagType<F> {
+impl<F: Flag> From<F> for FlagType<F> {
     fn from(item: F) -> FlagType<F> {
-
         /*
         todo: clean this up correctly, ensure values within bands
          */
         //assert!(item <= F::FMAX.into()) ;
         if item == F::ZERO {
-            FlagType { flags: F::ZERO}
+            FlagType { flags: F::ZERO }
         } else {
             FlagType {
                 flags: F::ONE << (item - F::ONE),
@@ -47,10 +60,8 @@ impl <F:Flag> From<F> for FlagType<F> {
     }
 }
 
-
-impl <F: Flag> From<FlagType<F>> for u8 {
+impl<F: Flag> From<FlagType<F>> for u8 {
     fn from(item: FlagType<F>) -> u8 {
-
         let mut count: u8 = 0;
         let mut f = item.flags;
         while f != F::ZERO {
@@ -58,20 +69,17 @@ impl <F: Flag> From<FlagType<F>> for u8 {
             count += 1;
         }
         count
-
-
     }
 }
 
-impl <F: Flag> From<usize> for FlagType<F> {
+impl<F: Flag> From<usize> for FlagType<F> {
     fn from(item: usize) -> FlagType<F> {
-
         /*
         todo: clean this up correctly, ensure values within bands
          */
-        assert!(item as u64 <= F::FMAX.into()) ;
+        assert!(item as u64 <= F::FMAX.into());
         if item == 0 {
-            FlagType { flags: F::ZERO}
+            FlagType { flags: F::ZERO }
         } else {
             FlagType {
                 flags: F::try_from(1 << (item - 1)).unwrap_or_default(),
@@ -80,9 +88,8 @@ impl <F: Flag> From<usize> for FlagType<F> {
     }
 }
 // Convert back to usize
-impl <F: Flag> From<FlagType<F>> for usize {
+impl<F: Flag> From<FlagType<F>> for usize {
     fn from(item: FlagType<F>) -> usize {
-
         let mut count: usize = 0;
         let mut f = item.flags;
         while f != F::ZERO {
@@ -90,12 +97,10 @@ impl <F: Flag> From<FlagType<F>> for usize {
             count += 1;
         }
         count
-
-
     }
 }
 
-impl <T: Flag + From<u8>> From<u8> for FlagType<T> {
+impl<T: Flag + From<u8>> From<u8> for FlagType<T> {
     fn from(item: u8) -> FlagType<T> {
         if item == 0 {
             FlagType { flags: T::ZERO }
@@ -121,16 +126,14 @@ impl From<i32> for FlagType<u16> {
 
 impl From<FlagType<u16>> for u16 {
     fn from(item: FlagType<u16>) -> u16 {
-
         /*
         todo: proper error handling
          */
         u16::try_from(item.flags.trailing_zeros() + 1).unwrap()
-
     }
 }
 
-impl <V: NormalInt, F: Flag> From <IntType<V>> for FlagType<F> {
+impl<V: NormalInt, F: Flag> From<IntType<V>> for FlagType<F> {
     fn from(other: IntType<V>) -> Self {
         let v = usize::from(other);
         FlagType::from(v)
@@ -138,10 +141,10 @@ impl <V: NormalInt, F: Flag> From <IntType<V>> for FlagType<F> {
 }
 
 // Increment and reset flagtypes
-impl <F: Flag> SqElement for FlagType<F> {
+impl<F: Flag> SqElement for FlagType<F> {
     type Item = F;
 
-    fn inc (&mut self) -> bool {
+    fn inc(&mut self) -> bool {
         if self.flags == F::VMAX {
             false
         } else if self.flags == F::ZERO {
@@ -161,8 +164,8 @@ impl <F: Flag> SqElement for FlagType<F> {
         }
     }
 
-    fn reset (&mut self) {
-            self.flags = F::ZERO;
+    fn reset(&mut self) {
+        self.flags = F::ZERO;
     }
 
     fn get(&self) -> Self::Item {
@@ -186,58 +189,52 @@ impl <F: Flag> SqElement for FlagType<F> {
     // }
 }
 
-impl <F: Flag> Add for FlagType<F> {
+impl<F: Flag> Add for FlagType<F> {
     type Output = Self;
-    fn add (self, other: Self) -> Self {
+    fn add(self, other: Self) -> Self {
         let res = self.flags | other.flags;
-        Self {
-            flags: res,
-        }
+        Self { flags: res }
     }
 }
 
-impl <F: Flag> AddAssign for FlagType<F>{
+impl<F: Flag> AddAssign for FlagType<F> {
     fn add_assign(&mut self, rhs: Self) {
         self.flags = self.flags + rhs.flags
-
     }
 }
 
-impl <F: Flag> Sub for FlagType<F> {
+impl<F: Flag> Sub for FlagType<F> {
     type Output = Self;
-    fn sub (self, other: Self) -> Self {
+    fn sub(self, other: Self) -> Self {
         let res = self.flags & (other.flags ^ F::FMAX);
-        Self {
-            flags: res,
-        }
+        Self { flags: res }
     }
 }
 
-impl <F: Flag> SubAssign for FlagType<F> {
+impl<F: Flag> SubAssign for FlagType<F> {
     fn sub_assign(&mut self, rhs: Self) {
         let res = self.flags & (rhs.flags ^ F::FMAX);
         self.flags = res;
     }
 }
 
-impl <F:Flag> BitAnd for FlagType<F> {
+impl<F: Flag> BitAnd for FlagType<F> {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
         Self {
-            flags: self.flags & rhs.flags
+            flags: self.flags & rhs.flags,
         }
     }
 }
 
-
 #[cfg(test)]
 mod flag_tests {
-    use crate::sq_element::{FlagType, IntType};
     use super::*;
+    use crate::sq_element::{FlagType, IntType};
 
     #[test]
-    fn froms () {
+    fn froms() {
         let flag: FlagType<u16> = FlagType::from(4usize);
         assert_eq!(flag.flags, 0b1000);
         assert_eq!(usize::from(flag), 4);
@@ -250,7 +247,6 @@ mod flag_tests {
         flag.flags = 0b1100;
 
         assert_eq!(<IntType<u8>>::from(flag), IntType::from(0));
-
     }
 
     #[test]
@@ -264,7 +260,5 @@ mod flag_tests {
 
         flag.reset();
         assert_eq!(flag.flags, 0);
-
-
     }
 }

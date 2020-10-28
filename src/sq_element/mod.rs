@@ -1,74 +1,73 @@
-
-pub(crate) mod value;
 pub(crate) mod flag;
 pub(crate) mod flag_limits;
+pub(crate) mod value;
 
-use std::convert::TryFrom;
-use flag_limits::{IntLimits, FlagLimits};
-use std::ops::{Add, AddAssign, SubAssign};
-use crate::sq_element::value::NormalInt;
 use crate::sq_element::flag::Flag;
 use crate::sq_element::flag_limits::ZeroAndOne;
+use crate::sq_element::value::NormalInt;
+use flag_limits::{FlagLimits, IntLimits};
+use std::convert::TryFrom;
+use std::ops::{Add, AddAssign, SubAssign};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct FlagType<F: Flag> {
-    pub(crate)flags: F,
+    pub(crate) flags: F,
 }
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct IntType<V: NormalInt> {
-    pub(crate)value: V
+    pub(crate) value: V,
 }
 
 pub trait OneZero {
     type Value: ZeroAndOne;
-    fn zero () -> Self;
-    fn one () -> Self;
+    fn zero() -> Self;
+    fn one() -> Self;
 }
 
-impl <V: NormalInt> OneZero for IntType<V>{
+impl<V: NormalInt> OneZero for IntType<V> {
     type Value = V;
     fn zero() -> Self {
-        Self {value: V::ZERO}
+        Self { value: V::ZERO }
     }
     fn one() -> Self {
-        Self {value: V::ONE}
+        Self { value: V::ONE }
     }
 }
-impl <F: Flag> OneZero for FlagType<F> {
+impl<F: Flag> OneZero for FlagType<F> {
     type Value = F;
     fn zero() -> Self {
-        Self {flags: F::ZERO}
+        Self { flags: F::ZERO }
     }
     fn one() -> Self {
-        Self {flags: F::ONE}
+        Self { flags: F::ONE }
     }
 }
 
-pub trait SqElement: OneZero + Default + PartialEq + Into<u8> +From<u8> + Copy + Clone
-{
+pub trait SqElement: OneZero + Default + PartialEq + Into<u8> + From<u8> + Copy + Clone {
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
-    fn reset (&mut self);
+    fn reset(&mut self);
     fn get(&self) -> Self::Item;
     fn set(&mut self, value: Self::Item);
-
 }
 
 pub trait FlElement: SqElement + AddAssign + SubAssign
-where Self: Sized, Self::FlagItem: FlagLimits + Flag  {
+where
+    Self: Sized,
+    Self::FlagItem: FlagLimits + Flag,
+{
     type FlagItem;
     fn count_ones(flags: &Self::FlagItem) -> u8;
-    fn merge (&self, slice:&[Self]) -> Self;
-    fn set_from_value <V: NormalInt> (&mut self, v_slice: &[IntType<V>]);
-    fn is_flagged (&self, other: Self) -> bool;
-    fn max()-> Self;
+    fn merge(&self, slice: &[Self]) -> Self;
+    fn set_from_value<V: NormalInt>(&mut self, v_slice: &[IntType<V>]);
+    fn is_flagged(&self, other: Self) -> bool;
+    fn max() -> Self;
 }
 
-
-impl <F:Flag> FlElement for FlagType<F> {
+impl<F: Flag> FlElement for FlagType<F> {
     type FlagItem = F;
-    fn count_ones (flags: &Self::FlagItem) -> u8 {
+    fn count_ones(flags: &Self::FlagItem) -> u8 {
         let mut f = *flags;
         let mut count = 0;
         while f > F::ZERO {
@@ -78,28 +77,29 @@ impl <F:Flag> FlElement for FlagType<F> {
         count
     }
 
-    fn merge (&self, slice: &[Self]) -> Self {
+    fn merge(&self, slice: &[Self]) -> Self {
         Self {
-            flags: slice.iter().fold(self.flags, |acc, x| acc | x.flags)
+            flags: slice.iter().fold(self.flags, |acc, x| acc | x.flags),
         }
     }
 
-    fn set_from_value <V: NormalInt> (&mut self, v_slice: &[IntType<V>]) {
-        self.flags = v_slice.iter()
+    fn set_from_value<V: NormalInt>(&mut self, v_slice: &[IntType<V>]) {
+        self.flags = v_slice
+            .iter()
             .fold(F::ZERO, |acc, x| acc | Self::from(*x).flags);
     }
 
-    fn is_flagged( &self, other: Self) -> bool{
+    fn is_flagged(&self, other: Self) -> bool {
         if self.flags & other.flags > F::ZERO {
             true
-        } else {false}
+        } else {
+            false
+        }
     }
 
     fn max() -> Self {
-        Self {flags: F::FMAX}
+        Self { flags: F::FMAX }
     }
-
-
 }
 
 //

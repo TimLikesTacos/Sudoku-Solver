@@ -1,28 +1,25 @@
-
-use crate::sq_element::*;
-use crate::sq_element::flag_limits::*;
-use crate::sq_element::value::NormalInt;
 use crate::sq_element::flag::Flag;
-use crate::square::flag_update::FlagUpdate;
-
+use crate::sq_element::value::NormalInt;
+use crate::sq_element::*;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FlagSquare<E: SqElement, F: FlElement> {
     pub(crate) value: E,
     pub(crate) fixed: bool,
     pub(crate) flags: F,
-    pub(crate) count :u8,
+    pub(crate) count: u8,
 }
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct SimpleSquare<E: SqElement> {
-    pub(crate)value: E,
-    pub(crate)fixed: bool,
+    pub(crate) value: E,
+    pub(crate) fixed: bool,
 }
 
-pub trait  Square: PartialEq + Clone
-    where Self::Element: SqElement,
-       Self::Value:  Sized + PartialEq
+pub trait Square: PartialEq + Clone
+where
+    Self::Element: SqElement,
+    Self::Value: Sized + PartialEq,
 {
     type Element;
     type Value;
@@ -38,16 +35,18 @@ pub trait  Square: PartialEq + Clone
     fn one() -> Self::Value;
 }
 
-impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for FlagSquare<Vt, Ft>
-    //where Vt::Item: NormalInt
+impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for FlagSquare<Vt, Ft>
+//where Vt::Item: NormalInt
 {
     type Element = Vt;
     type Value = Vt::Item;
 
-    fn set (&mut self, v: Self::Value) {
+    fn set(&mut self, v: Self::Value) {
         self.value.set(v)
     }
-    fn fixed(&self) -> bool { self.fixed }
+    fn fixed(&self) -> bool {
+        self.fixed
+    }
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
@@ -55,7 +54,9 @@ impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for 
         self.value.clone().into()
         //u8::from(self.value.clone())
     }
-    fn has_flags() -> bool { true }
+    fn has_flags() -> bool {
+        true
+    }
     /// Does not set flags
     fn new(v: u8, fix: bool) -> Self {
         FlagSquare {
@@ -71,7 +72,7 @@ impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for 
             return false;
         }
         // convert int to flag
-        let mut f:Ft = self.value.clone().into();
+        let mut f: Ft = self.value.clone().into();
         let old_copy = f.clone();
         // increment once
         let mut not_maxed = f.inc();
@@ -117,10 +118,11 @@ impl <Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for 
     }
 }
 
-impl<V: NormalInt> Square  for SimpleSquare<IntType<V>>
-where IntType<V>: SqElement<Item = V>
+impl<V: NormalInt> Square for SimpleSquare<IntType<V>>
+where
+    IntType<V>: SqElement<Item = V>,
 {
-    type Element =IntType<V>;
+    type Element = IntType<V>;
     type Value = V;
 
     fn getv(&self) -> Self::Value {
@@ -129,13 +131,17 @@ where IntType<V>: SqElement<Item = V>
     fn exportv(&self) -> u8 {
         u8::from(self.value)
     }
-    fn fixed(&self) -> bool { self.fixed }
+    fn fixed(&self) -> bool {
+        self.fixed
+    }
 
-    fn has_flags() -> bool { false }
+    fn has_flags() -> bool {
+        false
+    }
     fn new(v: u8, fix: bool) -> Self {
         SimpleSquare {
             value: IntType::from(v),
-            fixed: fix
+            fixed: fix,
         }
     }
 
@@ -148,11 +154,9 @@ where IntType<V>: SqElement<Item = V>
     }
 
     fn reset_value(&mut self) {
-
         if !self.fixed {
             self.value.reset()
         }
-
     }
 
     fn set(&mut self, v: Self::Value) {
@@ -169,7 +173,8 @@ where IntType<V>: SqElement<Item = V>
 }
 
 impl<F: Flag> Square for SimpleSquare<FlagType<F>>
-where FlagType<F>: SqElement<Item = F>
+where
+    FlagType<F>: SqElement<Item = F>,
 {
     type Element = FlagType<F>;
     type Value = F;
@@ -197,7 +202,7 @@ where FlagType<F>: SqElement<Item = F>
     fn new(v: u8, fix: bool) -> Self {
         SimpleSquare {
             value: FlagType::from(v),
-            fixed: fix
+            fixed: fix,
         }
     }
 
@@ -224,8 +229,9 @@ where FlagType<F>: SqElement<Item = F>
     }
 }
 
-impl <OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
-    where SimpleSquare<V>: Square + From<OS>
+impl<OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
+where
+    SimpleSquare<V>: Square + From<OS>,
 {
     /** todo: derive froms using reference so do not have to clone / move **/
     fn eq(&self, other: &OS) -> bool {
@@ -233,8 +239,9 @@ impl <OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
     }
 }
 
-impl <OS: Square, V: SqElement, F: FlElement> PartialEq<OS> for FlagSquare<V, F>
-    where FlagSquare<V, F>: Square + From<OS>
+impl<OS: Square, V: SqElement, F: FlElement> PartialEq<OS> for FlagSquare<V, F>
+where
+    FlagSquare<V, F>: Square + From<OS>,
 {
     fn eq(&self, other: &OS) -> bool {
         self.value == Self::from(other.clone()).value
@@ -245,12 +252,11 @@ impl <OS: Square, V: SqElement, F: FlElement> PartialEq<OS> for FlagSquare<V, F>
 mod square_tests {
     use super::*;
 
-
     #[test]
     fn new_test() {
         let a: SimpleSquare<IntType<u16>> = SimpleSquare {
             value: <IntType<u16>>::from(4),
-            fixed: true
+            fixed: true,
         };
         assert_eq!(a.getv(), 4u16);
         assert_eq!(a.fixed(), true);
@@ -342,7 +348,7 @@ mod square_tests {
         assert!(s.inc());
         assert_eq!(s.getv(), 0b10);
         assert!(s.inc());
-        assert_eq!(s.getv(),0b10000);
+        assert_eq!(s.getv(), 0b10000);
         assert!(s.inc());
 
         assert_eq!(s.getv(), 0b10000000);
@@ -359,7 +365,6 @@ mod square_tests {
         assert_eq!(s.getv(), 0);
         assert_eq!(s.count, 3);
         assert_eq!(s.flags.get(), 0b010010010);
-
     }
 
     //
@@ -379,5 +384,3 @@ mod square_tests {
     //     assert_eq!(*s.getp(), Flag::new(0b1100));
     // }
 }
-
-

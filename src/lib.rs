@@ -3,29 +3,28 @@
 // mod errors;
 // // mod human_calcs;
 // mod box_iter;
- //mod constants;
+//mod constants;
 // mod conv_input_output;
 mod sq_element;
 // mod grid;
 // mod puzzle;
- //mod support;
+//mod support;
 // mod solve;
-mod square;
-mod puzzle;
 mod grid;
+mod puzzle;
+mod square;
 //mod grid;
-pub mod support;
-mod solve;
 mod conv_input_output;
 mod errors;
+mod solve;
+pub mod support;
 //mod puzzle;
 
-
 #[cfg(test)]
-mod library_tests{
+mod library_tests {
     use super::*;
     #[test]
-    fn start(){
+    fn start() {
         assert!(true);
     }
 }
@@ -450,4 +449,3 @@ mod library_tests{
 //         assert!(cell78.is_empty());
 //     }
 // }
-

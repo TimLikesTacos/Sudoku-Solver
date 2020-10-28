@@ -1,9 +1,9 @@
 use crate::grid::*;
-use crate::sq_element::*;
-use crate::square::*;
 use crate::solve::brute::BruteForce;
 use crate::solve::solution_report::*;
+use crate::sq_element::*;
 use crate::square::flag_update::FlagUpdate;
+use crate::square::*;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
@@ -12,34 +12,27 @@ pub enum Solutions<G: Square> {
     Multi(Vec<Grid<G>>),
 }
 
-
 pub struct Puzzle<S: Square> {
     pub(crate) board: Grid<S>,
     pub(crate) solution: SolutionReport<S>,
 }
 
-type SimpleSudoku  = Puzzle<SimpleSquare<IntType<u8>>>;
-type RegSudoku     = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>>;
+type SimpleSudoku = Puzzle<SimpleSquare<IntType<u8>>>;
+type RegSudoku = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>>;
 type RegFlagSudoku = Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>>;
-type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>>;
+//type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>>;
 
-
-pub trait PuzzleTrait <S: Square>: BruteForce<S>
-{
-
+pub trait PuzzleTrait<S: Square>: BruteForce<S> {
     fn new(input_vec: Vec<u8>) -> Self;
     fn is_solved(&self) -> bool;
     //fn set_initial(&mut self, initial: Vec<u8>);
-    fn reset_square(&mut self, index:usize);
-
+    fn reset_square(&mut self, index: usize);
 }
 
-impl <S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S>
-{
+impl<S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S> {
     fn new(input_vec: Vec<u8>) -> Self {
-
         let g: Grid<S>;
-        g = Grid::new( input_vec);
+        g = Grid::new(input_vec);
         let mut p = Puzzle {
             board: g,
             solution: SolutionReport::default(),
@@ -48,7 +41,6 @@ impl <S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S>
         p.solution = sol;
         p
     }
-
 
     fn is_solved(&self) -> bool {
         unimplemented!()
@@ -217,36 +209,35 @@ impl <S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S>
 //
 //     }
 
-    //Sets a new puzzle using 2-D vector parameter
-    // fn set_initial(&mut self, initial: Vec<u8>) {
-    //     initial
-    //         .iter()
-    //         .enumerate()
-    //         .filter(|(_, &c)| c != 0)
-    //         .map(|(i, &c)| {
-    //
-    //             self.grid[i].setv(S::input_convert(c))})
-    //         .all(|_| true);
-    //
-    //     // ret.set_pencil();
-    // }
+//Sets a new puzzle using 2-D vector parameter
+// fn set_initial(&mut self, initial: Vec<u8>) {
+//     initial
+//         .iter()
+//         .enumerate()
+//         .filter(|(_, &c)| c != 0)
+//         .map(|(i, &c)| {
+//
+//             self.grid[i].setv(S::input_convert(c))})
+//         .all(|_| true);
+//
+//     // ret.set_pencil();
+// }
 
-    // // Assumes that the puzzle has already been initially set
-    // fn set_pencil(&mut self)  {
-    //     // For all cells that are not fixed...
-    //     for i in 0..NUM_CELLS {
-    //         if self.grid[i].fixed() {
-    //             continue;
-    //         }
-    //         let new_pencil:Vec<S::Value> = self
-    //             .single_iterator(i)
-    //             .fold(Vec::new(), |mut acc, x| {acc.push(x.getv()); acc});
-    //
-    //         self.grid[i].initial_setp(&new_pencil);
-    //
-    //     }
-    // }
-
+// // Assumes that the puzzle has already been initially set
+// fn set_pencil(&mut self)  {
+//     // For all cells that are not fixed...
+//     for i in 0..NUM_CELLS {
+//         if self.grid[i].fixed() {
+//             continue;
+//         }
+//         let new_pencil:Vec<S::Value> = self
+//             .single_iterator(i)
+//             .fold(Vec::new(), |mut acc, x| {acc.push(x.getv()); acc});
+//
+//         self.grid[i].initial_setp(&new_pencil);
+//
+//     }
+// }
 
 // mod grid_and_puzzle_tests {
 //     use super::*;
