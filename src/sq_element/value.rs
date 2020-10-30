@@ -45,8 +45,8 @@ impl<V: NormalInt> SqElement for IntType<V> {
         self.value
     }
 
-    fn set(&mut self, value: Self::Item) {
-        self.value = value
+    fn set(&mut self, value: Self) {
+        self.value = value.value
     }
 
     // fn zero() -> Self {

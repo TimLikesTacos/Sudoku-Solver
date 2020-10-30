@@ -182,6 +182,7 @@ pub mod brute_unit {
         .unwrap();
 
         let res: Puzzle<SimpleSquare<IntType<u8>>> = Puzzle::new(example.as_input().unwrap());
+
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
         assert!(match sol {
@@ -196,6 +197,7 @@ pub mod brute_unit {
         });
 
         let res: Puzzle<SimpleSquare<FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
         assert!(match sol {
@@ -340,7 +342,7 @@ pub mod brute_unit {
         let guesses1 = guesses1[0];
 
         let guess_n_check = if let SolveTech::Guesses(n) =
-            res.solution.get_tech(SolveTech::Guesses).next().unwrap()
+            res.solution.tech_iter(SolveTech::Guesses).next().unwrap()
         {
             n
         } else {

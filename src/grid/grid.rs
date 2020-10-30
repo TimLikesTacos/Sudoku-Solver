@@ -4,55 +4,27 @@ use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, SimpleSquare, Square};
 use crate::support::*;
 use std::ops::{Index, IndexMut};
+use std::fmt::{Display, Formatter};
+use std::fmt;
 
 #[derive(Clone, Debug)]
 pub struct Grid<S: Square> {
     pub(crate) grid: Vec<S>,
 }
 
-// pub trait  NewGrid <S: Square>{
-//     fn new (&self, v: Vec<u8>) -> Grid <S>{
-//         Grid {
-//             grid: v.iter().map(|x| {
-//                 if *x == 0 {
-//                     S::new(*x, false)
-//                 } else {
-//                     S::new(*x, true)
-//                 }
-//             }).collect()
-//         }
-//     }
-// }
+impl <S: Square> Display for Grid<S> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut res = fmt::Result::Ok(());
+        self.grid.iter().enumerate().map (|(i, v)| {
+            res = write!(f, "{}", v);
+            if i % MAX_NUM == MAX_NUM - 1 {
+                write!(f, "\n");
+            }
+        }).all(|_|true);
+        res
+    }
+}
 
-// impl <V: SqElement> NewGrid<SimpleSquare<V>> for Grid<SimpleSquare<V>>
-// where SimpleSquare<V>: Square{
-//
-//     fn new (v: Vec<u8>) -> Self {
-//         Grid {
-//             grid: input_vec.iter().map(|x| {
-//                 if *x == 0 {
-//                     S::new(*x, false)
-//                 } else {
-//                     S::new(*x, true)
-//                 }
-//             }).collect()
-//         }
-//     }
-// }
-
-// impl <V: SqElement, F: FlElement> NewGrid<FlagSquare<V, F>> for Grid<FlagSquare<V, F>>
-//  where FlagSquare<V, F>: FlagUpdate + Square{
-//     fn new (&self, v: Vec<u8>) -> Grid<FlagSquare<V, F>> {
-//         let mut n = NewGrid::new(v);
-//         for i in 0..MAX_NUM{
-//             let it = n.single_iterator(i);
-//             let mut copy = n[i];
-//             copy.set_initial(it);
-//             n[i] = copy;
-//         }
-//         n
-//     }
-// }
 impl<V1: SqElement, V2: SqElement + From<F> + Copy, F: FlElement + From<V2> + Copy>
     From<Grid<SimpleSquare<V1>>> for Grid<FlagSquare<V2, F>>
 where
@@ -205,6 +177,13 @@ impl<S: Square + Clone> Grid<S> {
     pub fn single_iterator(&self, index: usize) -> impl Iterator<Item = &'_ S> {
         self.box_iter(index)
             .chain(self.row_iter(index).chain(self.col_iter(index)))
+    }
+}
+
+impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>> {
+    fn set_value_update_flags (&mut self, index: usize, value: V) {
+        // let f_remove = F::FlagItem::from(&value);
+        // self[index].set(value);
     }
 }
 

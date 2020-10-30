@@ -8,6 +8,7 @@ use crate::sq_element::value::NormalInt;
 use flag_limits::{FlagLimits, IntLimits};
 use std::convert::TryFrom;
 use std::ops::{Add, AddAssign, SubAssign};
+use std::fmt::{Result, Display, Formatter};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct FlagType<F: Flag> {
@@ -23,6 +24,18 @@ pub trait OneZero {
     type Value: ZeroAndOne;
     fn zero() -> Self;
     fn one() -> Self;
+}
+
+impl <V: NormalInt> Display for IntType<V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+impl <V: Flag> Display for FlagType<V> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.flags)
+    }
 }
 
 impl<V: NormalInt> OneZero for IntType<V> {
@@ -49,7 +62,7 @@ pub trait SqElement: OneZero + Default + PartialEq + Into<u8> + From<u8> + Copy 
     fn inc(&mut self) -> bool;
     fn reset(&mut self);
     fn get(&self) -> Self::Item;
-    fn set(&mut self, value: Self::Item);
+    fn set(&mut self, value: Self);
 }
 
 pub trait FlElement: SqElement + AddAssign + SubAssign

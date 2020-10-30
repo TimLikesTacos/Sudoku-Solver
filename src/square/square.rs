@@ -1,6 +1,8 @@
 use crate::sq_element::flag::Flag;
 use crate::sq_element::value::NormalInt;
 use crate::sq_element::*;
+use std::fmt::{Display, Formatter};
+use std::fmt;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FlagSquare<E: SqElement, F: FlElement> {
@@ -16,7 +18,7 @@ pub struct SimpleSquare<E: SqElement> {
     pub(crate) fixed: bool,
 }
 
-pub trait Square: PartialEq + Clone
+pub trait Square: PartialEq + Clone + Display
 where
     Self::Element: SqElement,
     Self::Value: Sized + PartialEq,
@@ -248,6 +250,25 @@ where
     }
 }
 
+
+
+impl <E: SqElement> Display for SimpleSquare<E>
+    where SimpleSquare<E>: Square{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.exportv())
+    }
+}
+
+impl <E: SqElement, F: FlElement> Display for FlagSquare<E, F>
+    where FlagSquare<E, F>: Square{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.exportv())
+    }
+}
+
+impl <V: SqElement, F: FlElement> FlagSquare<V, F> {
+    fn count (&self) -> u8 {self.count}
+}
 #[cfg(test)]
 mod square_tests {
     use super::*;

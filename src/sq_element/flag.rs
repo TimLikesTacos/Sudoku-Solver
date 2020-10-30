@@ -1,12 +1,13 @@
 use crate::sq_element::*;
 use std::convert::TryFrom;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
 
 pub trait Flag:
     Default
     + Copy
     + Debug
+    + Display
     + Clone
     + FlagLimits
     + Add<Output = Self>
@@ -172,8 +173,8 @@ impl<F: Flag> SqElement for FlagType<F> {
         self.flags
     }
 
-    fn set(&mut self, value: Self::Item) {
-        self.flags = value;
+    fn set(&mut self, value: Self) {
+        self.flags = value.flags;
     }
 
     // fn zero() -> Self {
