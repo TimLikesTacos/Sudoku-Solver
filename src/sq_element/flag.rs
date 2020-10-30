@@ -1,7 +1,10 @@
 use crate::sq_element::*;
 use std::convert::TryFrom;
 use std::fmt::{Debug, Display};
-use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
+use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign, Add};
+use crate::sq_element::sq_element::{IntType, SqElement};
+use crate::sq_element::flag_limits::FlagLimits;
+use crate::sq_element::int::NormalInt;
 
 pub trait Flag:
     Default
@@ -28,37 +31,10 @@ pub trait Flag:
 impl Flag for u16 {}
 impl Flag for u32 {}
 
-// /**
-// todo: macro-ize this to allow for different primitive integers
-// **/
-// // Convert from usize to flag.  Useful for input
-// impl From<usize> for FlagType<u16> {
-//     fn from(item: usize) -> FlagType<u16> {
-//         if item == 0 {
-//             FlagType { flags: 0, count: 0 }
-//         } else {
-//             FlagType {
-//                 flags: 1 << (item - 1),
-//                 count: 1,
-//             }
-//         }
-//     }
-// }
 
-impl<F: Flag> From<F> for FlagType<F> {
-    fn from(item: F) -> FlagType<F> {
-        /*
-        todo: clean this up correctly, ensure values within bands
-         */
-        //assert!(item <= F::FMAX.into()) ;
-        if item == F::ZERO {
-            FlagType { flags: F::ZERO }
-        } else {
-            FlagType {
-                flags: F::ONE << (item - F::ONE),
-            }
-        }
-    }
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
+pub struct FlagType<F: Flag> {
+    pub(crate) flags: F,
 }
 
 impl<F: Flag> From<FlagType<F>> for u8 {
@@ -154,13 +130,6 @@ impl<F: Flag> SqElement for FlagType<F> {
         } else {
             let old = self.flags;
             self.flags = old << F::ONE;
-            // /** Debug **/
-            // let b = self.get();
-            // if b > F::from(255) {
-            //     let max = F::VMAX;
-            //     dbg!(&self.flags);
-            // }
-            // /** End Debug **/
             true
         }
     }
@@ -173,21 +142,12 @@ impl<F: Flag> SqElement for FlagType<F> {
         self.flags
     }
 
-    fn set(&mut self, value: Self) {
-        self.flags = value.flags;
+    fn set<V: SqElement>(&mut self, value: V)
+        where Self: From<V>
+    {
+       self.flags = Self::from(value).flags;
     }
 
-    // fn zero() -> Self {
-    //     Self {
-    //         flags: F::ZERO
-    //     }
-    // }
-    //
-    // fn one() -> Self {
-    //     Self {
-    //         flags: F::ZERO
-    //     }
-    // }
 }
 
 impl<F: Flag> Add for FlagType<F> {
@@ -232,8 +192,19 @@ impl<F: Flag> BitAnd for FlagType<F> {
 #[cfg(test)]
 mod flag_tests {
     use super::*;
-    use crate::sq_element::{FlagType, IntType};
 
+    #[test]
+    fn other_froms () {
+        let mut a: FlagType<u16> = FlagType::from(0usize);
+        a.set(<IntType<u8>>::from(3usize));
+        assert_eq!(a.flags, 0b100);
+        let b: IntType<u16> = IntType::from(a);
+        assert_eq!(b.get(), 3);
+        let mut b: IntType<u16> = IntType::from(0);
+        b.set(<FlagType<u16>>::from(4usize));
+        assert_eq!(b.get(), 4);
+
+    }
     #[test]
     fn froms() {
         let flag: FlagType<u16> = FlagType::from(4usize);

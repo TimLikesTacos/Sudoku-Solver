@@ -4,6 +4,8 @@ use crate::solve::solution_report::*;
 use crate::sq_element::*;
 use crate::square::flag_update::FlagUpdate;
 use crate::square::*;
+use crate::sq_element::sq_element::IntType;
+use crate::sq_element::flag::FlagType;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {

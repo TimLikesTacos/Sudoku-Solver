@@ -1,7 +1,10 @@
-use crate::sq_element::flag::Flag;
+use crate::sq_element::flag::{Flag, FlagType};
 use crate::sq_element::*;
-use std::convert::TryInto;
+use std::convert::{TryInto, TryFrom};
 use std::fmt::{Debug, Display};
+use crate::sq_element::sq_element::{SqElement, IntType};
+use crate::sq_element::flag_limits::IntLimits;
+use std::ops::Add;
 
 // Organize all required traits into one for a value
 pub trait NormalInt:
@@ -45,21 +48,12 @@ impl<V: NormalInt> SqElement for IntType<V> {
         self.value
     }
 
-    fn set(&mut self, value: Self) {
-        self.value = value.value
+    fn set<F: SqElement>(&mut self, value: F)
+        where Self: From<F>
+    {
+        self.value = Self::from(value).value;
     }
 
-    // fn zero() -> Self {
-    //     Self {
-    //         value: V::ZERO
-    //     }
-    // }
-    //
-    // fn one() -> Self {
-    //     Self {
-    //         value: V::ONE
-    //     }
-    // }
 }
 
 // Conver to usize.  Useful for output.
@@ -129,9 +123,7 @@ impl<V: NormalInt, F: Flag> From<FlagType<F>> for IntType<V> {
                 };
                 val = val >> F::ONE;
                 tally = tally + V::ONE;
-                if tally == V::from(10) {
-                    dbg!(&other.flags);
-                }
+
                 assert!(
                     tally <= V::VMAX,
                     format!(
@@ -148,7 +140,6 @@ impl<V: NormalInt, F: Flag> From<FlagType<F>> for IntType<V> {
 #[cfg(test)]
 mod value_tests {
     use super::*;
-    use crate::sq_element::IntType;
 
     #[test]
     fn inc_reset() {

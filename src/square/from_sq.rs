@@ -1,7 +1,8 @@
-use crate::sq_element::flag::Flag;
-use crate::sq_element::value::NormalInt;
-use crate::sq_element::{FlElement, FlagType, IntType};
+use crate::sq_element::flag::*;
+use crate::sq_element::int::NormalInt;
+use crate::sq_element::sq_element::{FlElement, IntType};
 use crate::square::square::*;
+
 
 impl<V: NormalInt> From<u8> for SimpleSquare<IntType<V>> {
     fn from(v: u8) -> Self {

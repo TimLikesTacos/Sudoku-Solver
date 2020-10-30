@@ -1,11 +1,11 @@
 use crate::grid::*;
-use crate::sq_element::{FlElement, SqElement};
 use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, SimpleSquare, Square};
 use crate::support::*;
 use std::ops::{Index, IndexMut};
 use std::fmt::{Display, Formatter};
 use std::fmt;
+use crate::sq_element::sq_element::{SqElement, FlElement};
 
 #[derive(Clone, Debug)]
 pub struct Grid<S: Square> {
@@ -180,10 +180,38 @@ impl<S: Square + Clone> Grid<S> {
     }
 }
 
-impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>> {
+impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
+    where FlagSquare<V,F>: FlagUpdate
+{
     fn set_value_update_flags (&mut self, index: usize, value: V) {
-        // let f_remove = F::FlagItem::from(&value);
-        // self[index].set(value);
+        let f_remove = F::from(value);
+        self[index].set(value);
+        self.row_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+        self.col_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+        self.box_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+    }
+
+    fn undo_set_and_update(&mut self, index:usize) {
+        let value = self[index].value;
+        self[index].reset_value();
+        let row = index_to_row(index);
+        let col = index_to_col(index);
+        let boxn = index_to_box(index);
+        for n in 0..MAX_NUM {
+            let rowi = index_from_row(row, n);
+            let coli = index_from_col(col, n);
+            let boxi = index_from_box(boxn, n);
+
+            let mut new_f: FlagSquare<V,F> = FlagSquare::new(0,false);
+            new_f.set_initial(self.single_iterator(rowi));
+            self[rowi].flags = new_f.flags;
+
+            new_f.set_initial(self.single_iterator(coli));
+            self[coli].flags = new_f.flags;
+
+            new_f.set_initial(self.single_iterator(boxi));
+            self[boxi].flags = new_f.flags;
+        }
     }
 }
 

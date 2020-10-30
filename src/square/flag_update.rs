@@ -1,10 +1,11 @@
-use crate::sq_element::flag::Flag;
-use crate::sq_element::value::NormalInt;
-use crate::sq_element::*;
+use crate::sq_element::flag::*;
+use crate::sq_element::int::NormalInt;
+use crate::sq_element::sq_element::*;
 use crate::square::*;
 
 pub trait FlagUpdate {
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>);
+
     // fn add_flag(&mut self, e: impl SqElement);
 }
 

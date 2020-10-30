@@ -1,7 +1,9 @@
 use crate::solve::solution_report::SolveTech;
 use crate::square::{FlagSquare};
-use crate::grid::{NUM_CELLS, Grid};
+use crate::grid::{NUM_CELLS, Grid, MAX_NUM};
 use crate::sq_element::{FlElement, SqElement};
+use crate::sq_element::sq_element::{SqElement, FlElement};
+use crate::support::{get_cell, index_from_box, index_from_row, index_from_col, start_of_box};
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -45,7 +47,6 @@ impl <V: SqElement, F: FlElement>BasicHumanMethods for Grid<FlagSquare<V, F>> {
         loop {
             let initial_amount = amount;
 
-
             // get list of single candidate cells
             let singles: Vec<usize> = self.grid_iter().enumerate().filter(|(_, s)| s.count == 1)
                 .map(|(i,_)| i).collect();
@@ -74,7 +75,23 @@ impl <V: SqElement, F: FlElement>BasicHumanMethods for Grid<FlagSquare<V, F>> {
                 break;
             }
         }
-        amount
+
+    fn single_possibility(&mut self) -> SolveTech {
+        unimplemented!()
+    }
+
+    fn single_possibility_slower(&mut self) -> SolveTech {
+        unimplemented!()
+    }
+
+    fn naked_tuple(&mut self) -> SolveTech {
+        unimplemented!()
+    }
+
+    fn hidden_tuple(&mut self) -> SolveTech {
+        unimplemented!()
+    }
+    amount
     }
 
     fn single_possibility(&mut self, fill: bool) -> Vec<(usize, _)> {
