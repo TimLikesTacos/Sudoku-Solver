@@ -183,7 +183,7 @@ impl<S: Square + Clone> Grid<S> {
 impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
     where FlagSquare<V,F>: FlagUpdate
 {
-    fn set_value_update_flags (&mut self, index: usize, value: V) {
+    pub(crate) fn set_value_update_flags (&mut self, index: usize, value: V) {
         let f_remove = F::from(value);
         self[index].set(value);
         self.row_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
@@ -191,6 +191,7 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
         self.box_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
     }
 
+    /// O(9 * MAX_NUM^2). Intensive calculation, avoid when possible
     fn undo_set_and_update(&mut self, index:usize) {
         let value = self[index].value;
         self[index].reset_value();

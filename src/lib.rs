@@ -18,7 +18,7 @@ mod conv_input_output;
 mod errors;
 mod solve;
 pub mod support;
-//mod human_calcs;
+mod human_calcs;
 //mod puzzle;
 
 #[cfg(test)]

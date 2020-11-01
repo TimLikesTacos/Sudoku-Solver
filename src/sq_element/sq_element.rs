@@ -68,6 +68,7 @@ pub trait FlElement: SqElement + AddAssign + SubAssign
     fn merge(&self, slice: &[Self]) -> Self;
     fn set_from_value<V: NormalInt>(&mut self, v_slice: &[IntType<V>]);
     fn is_flagged(&self, other: Self) -> bool;
+    // fn remove_flag(&mut self, other: Self);
     fn max() -> Self;
 }
 

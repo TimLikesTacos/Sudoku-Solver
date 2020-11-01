@@ -5,12 +5,13 @@ use crate::square::*;
 
 pub trait FlagUpdate {
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>);
-
+    fn remove_flag (&mut self, other: FlagType);
     // fn add_flag(&mut self, e: impl SqElement);
 }
 
 impl<S: SqElement> FlagUpdate for SimpleSquare<S> {
     fn set_initial<'a>(&'a mut self, _: impl Iterator<Item = &'a Self>) {}
+    fn remove_flag<F: Flag>(&mut self, other: FlagType<F>) {}
     //fn add_flag(&mut self, e: IntType<S::Element>) {}
 }
 
@@ -24,6 +25,15 @@ where
             acc - <FlagType<F2>>::from(x.value)
         });
         self.count = FlagType::count_ones(&self.flags.get());
+    }
+
+    fn remove_flag(&mut self, other: FlagType<F1>) {
+
+        if self.flags.is_flagged(<FlagType<F2>>::from(other)) {
+            let num = F2::count_ones(&self.flags & other.flags);
+            *self.flags -= other.flags;
+            *self.count -= num;
+        }
     }
 
     // fn add_flag(&mut self, e: impl SqElement) {
@@ -40,6 +50,15 @@ where
             acc - <FlagType<F2>>::from(x.value)
         });
         self.count = FlagType::count_ones(&self.flags.get());
+    }
+
+    fn remove_flag<F: Flag>(&mut self, other: FlagType<F>) {
+
+        if self.flags.is_flagged(other.flags) {
+            let num = F::count_ones(&self.flags & other.flags);
+            *self.flags -= other.flags;
+            *self.count -= num;
+        }
     }
 
     // fn add_flag(&mut self, e: impl SqElement) {
