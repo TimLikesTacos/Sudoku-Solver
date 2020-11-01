@@ -1,9 +1,8 @@
 use crate::sq_element::flag::*;
-use crate::sq_element::int::NormalInt;
+use crate::sq_element::int::{IntValue};
 use crate::sq_element::sq_element::*;
 use std::fmt::{Display, Formatter};
 use std::fmt;
-use crate::sq_element::sq_element::IntType;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FlagSquare<E: SqElement, F: FlElement> {
@@ -23,18 +22,18 @@ pub trait Square: PartialEq + Clone + Display
 where
     Self::Value: Sized + PartialEq,
 {
-    type Element;
+    type Type;
     type Value;
     fn set <V: SqElement>(&mut self, v: V)
-        where Self::Element: From<V>;
-    fn get_element(&self) -> Self::Element;
-    fn getv(&self) -> Self::Value;
+        where Self::Type: From<V>;
     fn exportv(&self) -> u8;
     fn has_flags() -> bool;
     fn fixed(&self) -> bool;
     fn new(v: u8, fix: bool) -> Self;
     fn inc(&mut self) -> bool;
     fn reset_value(&mut self);
+    fn get_element(&self) -> Self::Type;
+    fn getv(&self) -> Self::Value;
     fn zero() -> Self::Value;
     fn one() -> Self::Value;
 }
@@ -42,11 +41,11 @@ where
 impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for FlagSquare<Vt, Ft>
 //where Vt::Item: NormalInt
 {
-    type Element = Vt;
+    type Type = Vt;
     type Value = Vt::Item;
 
     fn set<V: SqElement>(&mut self, v: V)
-        where Self::Element: From<V>
+        where Self::Type: From<V>
     {
         self.value.set(v)
     }
@@ -56,7 +55,7 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Element {self.value}
+    fn get_element(&self) -> Self::Type {self.value}
     fn exportv(&self) -> u8 {
         self.value.clone().into()
         //u8::from(self.value.clone())
@@ -125,17 +124,16 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     }
 }
 
-impl<V: NormalInt> Square for SimpleSquare<IntType<V>>
-where
-    IntType<V>: SqElement<Item = V>,
+impl Square for SimpleSquare<IntValue>
+
 {
-    type Element = IntType<V>;
-    type Value = V;
+    type Type = IntValue;
+    type Value = u8;
 
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Element {self.value}
+    fn get_element(&self) -> Self::Type {self.value}
     fn exportv(&self) -> u8 {
         u8::from(self.value)
     }
@@ -148,7 +146,7 @@ where
     }
     fn new(v: u8, fix: bool) -> Self {
         SimpleSquare {
-            value: IntType::from(v),
+            value: IntValue::from(v),
             fixed: fix,
         }
     }
@@ -168,30 +166,30 @@ where
     }
 
     fn set<V2:SqElement>(&mut self, v: V2)
-        where Self::Element: From<V2>
+        where Self::Type: From<V2>
 
     {
         self.value.set(v)
     }
 
     fn zero() -> Self::Value {
-        IntType::zero().get()
+        IntValue::zero().get()
     }
 
     fn one() -> Self::Value {
-        IntType::one().get()
+        IntValue::one().get()
     }
 }
 
-impl<F: Flag> Square for SimpleSquare<FlagType<F>>
+impl<F: FlagElement> Square for SimpleSquare<Flag<F>>
 where
-    FlagType<F>: SqElement<Item = F>,
+    Flag<F>: SqElement<Item = F>,
 {
-    type Element = FlagType<F>;
+    type Type = Flag<F>;
     type Value = F;
 
     fn set<V: SqElement>(&mut self, v: V)
-        where Self::Element: From<V>
+        where Self::Type: From<V>
     {
         self.value.set(v)
     }
@@ -199,7 +197,7 @@ where
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Element {self.value}
+    fn get_element(&self) -> Self::Type {self.value}
 
     fn exportv(&self) -> u8 {
         u8::from(self.value)
@@ -215,7 +213,7 @@ where
 
     fn new(v: u8, fix: bool) -> Self {
         SimpleSquare {
-            value: FlagType::from(v),
+            value: Flag::from(v),
             fixed: fix,
         }
     }
@@ -235,11 +233,11 @@ where
     }
 
     fn zero() -> Self::Value {
-        FlagType::zero().get()
+        Flag::zero().get()
     }
 
     fn one() -> Self::Value {
-        FlagType::one().get()
+        Flag::one().get()
     }
 }
 
@@ -287,36 +285,36 @@ mod square_tests {
 
     #[test]
     fn new_test() {
-        let a: SimpleSquare<IntType<u16>> = SimpleSquare {
-            value: <IntType<u16>>::from(4),
+        let a: SimpleSquare<IntValue> = SimpleSquare {
+            value: <IntValue>::from(4),
             fixed: true,
         };
-        assert_eq!(a.getv(), 4u16);
+        assert_eq!(a.getv(), 4);
         assert_eq!(a.fixed(), true);
-        let a: SimpleSquare<IntType<u16>> = SimpleSquare::new(4u8, false);
-        assert_eq!(a.getv(), 4u16);
+        let a: SimpleSquare<IntValue> = SimpleSquare::new(4u8, false);
+        assert_eq!(a.getv(), 4);
         assert_eq!(a.fixed(), false);
-        let a: SimpleSquare<FlagType<u16>> = SimpleSquare::new(4u8, true);
+        let a: SimpleSquare<Flag<u16>> = SimpleSquare::new(4u8, true);
         assert_eq!(a.getv(), 0b1000);
         assert_eq!(a.fixed(), true);
 
-        let a: FlagSquare<IntType<u16>, FlagType<u16>> = FlagSquare::new(4u8, true);
-        assert_eq!(a.getv(), 4u16);
+        let a: FlagSquare<IntValue, Flag<u16>> = FlagSquare::new(4u8, true);
+        assert_eq!(a.getv(), 4);
         assert_eq!(a.fixed(), true);
-        let a: FlagSquare<FlagType<u32>, FlagType<u32>> = FlagSquare::new(4u8, false);
+        let a: FlagSquare<Flag<u32>, Flag<u32>> = FlagSquare::new(4u8, false);
         assert_eq!(a.getv(), 0b1000);
         assert_eq!(a.fixed(), false);
     }
 
     #[test]
     fn set_test() {
-        let mut a: SimpleSquare<IntType<u8>> = SimpleSquare::new(4u8, true);
-        let b: SimpleSquare<IntType<u8>> = SimpleSquare::new(2u8, false);
+        let mut a: SimpleSquare<IntValue> = SimpleSquare::new(4u8, true);
+        let b: SimpleSquare<IntValue> = SimpleSquare::new(2u8, false);
         a.set(b.get_element());
         assert_eq!(a.getv(), 2);
         assert_eq!(a.fixed, true);
 
-        let mut c: FlagSquare<FlagType<u16>, FlagType<u16>> = FlagSquare::new(3u8, true);
+        let mut c: FlagSquare<Flag<u16>, Flag<u16>> = FlagSquare::new(3u8, true);
         a.set(c.get_element());
         assert_eq!(a.getv(), 3);
         assert_eq!(a.fixed, true);
@@ -328,10 +326,10 @@ mod square_tests {
 
     #[test]
     fn inc_reset_test() {
-        let mut s: FlagSquare<IntType<u8>, FlagType<u16>> = FlagSquare {
-            value: IntType { value: 0 },
+        let mut s: FlagSquare<IntValue, Flag<u16>> = FlagSquare {
+            value: IntValue { value: 0 },
             fixed: false,
-            flags: FlagType { flags: 0b100010010 },
+            flags: Flag { flag: 0b100010010 },
             count: 3,
         };
         assert_eq!(s.getv(), 0);
@@ -364,10 +362,10 @@ mod square_tests {
         assert_eq!(s.count, 3);
         assert_eq!(s.flags.get(), 0b100010010);
 
-        let mut s: FlagSquare<IntType<u8>, FlagType<u16>> = FlagSquare {
-            value: IntType { value: 0 },
+        let mut s: FlagSquare<IntValue, Flag<u16>> = FlagSquare {
+            value: IntValue { value: 0 },
             fixed: false,
-            flags: FlagType { flags: 0b010010010 },
+            flags: Flag { flag: 0b010010010 },
             count: 3,
         };
         assert!(s.inc());
@@ -390,10 +388,10 @@ mod square_tests {
         assert_eq!(s.flags.get(), 0b010010010);
 
         // Different types of flagsquare
-        let mut s: FlagSquare<FlagType<u16>, FlagType<u16>> = FlagSquare {
-            value: FlagType { flags: 0 },
+        let mut s: FlagSquare<Flag<u16>, Flag<u16>> = FlagSquare {
+            value: Flag { flag: 0 },
             fixed: false,
-            flags: FlagType { flags: 0b010010010 },
+            flags: Flag { flag: 0b010010010 },
             count: 3,
         };
         assert!(s.inc());

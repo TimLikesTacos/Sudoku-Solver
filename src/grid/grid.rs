@@ -247,7 +247,7 @@ impl<S: Square> IndexMut<usize> for Grid<S> {
 mod grid_tests {
 
     use super::*;
-    use crate::sq_element::{FlagType, IntType};
+    use crate::sq_element::{Flag, IntValue};
     use std::convert::TryInto;
 
     fn test_vec() -> Vec<u8> {
@@ -263,7 +263,7 @@ mod grid_tests {
     #[test]
     fn new_test() {
         let vec: Vec<u8> = test_vec();
-        let grid: Grid<SimpleSquare<IntType<u8>>> = Grid::new(vec);
+        let grid: Grid<SimpleSquare<IntValue>> = Grid::new(vec);
         let mut iter = grid.grid_iter();
         assert_eq!(iter.next().unwrap().getv(), 9);
         assert_eq!(iter.next().unwrap().getv(), 8);
@@ -279,7 +279,7 @@ mod grid_tests {
         assert_eq!(iter.next(), Option::None);
 
         let vec: Vec<u8> = test_vec();
-        let grid: Grid<FlagSquare<FlagType<u16>, FlagType<u16>>> = Grid::new(vec);
+        let grid: Grid<FlagSquare<Flag<u16>, Flag<u16>>> = Grid::new(vec);
         let mut iter = grid.grid_iter();
         assert_eq!(iter.next().unwrap().getv(), 0b100000000);
         assert_eq!(iter.next().unwrap().getv(), 0b10000000);
@@ -299,8 +299,8 @@ mod grid_tests {
     #[test]
     fn from_test() {
         let vec: Vec<u8> = test_vec();
-        let grid: Grid<FlagSquare<FlagType<u16>, FlagType<u16>>> = Grid::new(vec);
-        let g2: Grid<SimpleSquare<IntType<u16>>> = Grid::from(&grid);
+        let grid: Grid<FlagSquare<Flag<u16>, Flag<u16>>> = Grid::new(vec);
+        let g2: Grid<SimpleSquare<IntValue>> = Grid::from(&grid);
         let mut iter = g2.grid_iter();
         assert_eq!(iter.next().unwrap().getv(), 9);
         assert_eq!(iter.next().unwrap().getv(), 8);
@@ -317,7 +317,7 @@ mod grid_tests {
         assert_eq!(iter.next(), Option::None);
         assert_eq!(grid, g2);
 
-        let g3: Grid<SimpleSquare<FlagType<u32>>> = Grid::from(&grid);
+        let g3: Grid<SimpleSquare<Flag<u32>>> = Grid::from(&grid);
         let mut iter = g3.grid_iter();
         assert_eq!(iter.next().unwrap().getv(), 0b100000000);
         assert_eq!(iter.next().unwrap().getv(), 0b10000000);

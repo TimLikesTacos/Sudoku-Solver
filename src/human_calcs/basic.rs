@@ -144,7 +144,7 @@ mod human_method_tests {
     use super::*;
     use crate::puzzle::{Puzzle, PuzzleTrait};
     use crate::conv_input_output::PuzInput;
-    use crate::sq_element::{FlagType, IntType};
+    use crate::sq_element::{Flag, IntValue};
 
     fn get_example() -> Vec<Vec<u8>> {
         vec![
@@ -160,7 +160,7 @@ mod human_method_tests {
         ]
     }
 
-    fn get_puzzle() -> Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>> {
+    fn get_puzzle() -> Puzzle<FlagSquare<IntValue<u8>, Flag<u16>>> {
         Puzzle::new(get_example().as_input().unwrap())
     }
 
@@ -173,9 +173,9 @@ mod human_method_tests {
         let cell4 = puz[73];
         let cells = [cell1, cell2, cell3, cell4];
         for c in cells.iter() {
-            assert!(c.flags.is_flagged(FlagType::from(0b10)));
+            assert!(c.flags.is_flagged(Flag::from(0b10)));
         }
-        puz.set_value_update_flags(10, IntType::from(2));
+        puz.set_value_update_flags(10, IntValue::from(2));
 
         let cell1 = puz[2];
         let cell2 = puz[10];
@@ -184,7 +184,7 @@ mod human_method_tests {
         let cells = [cell1, cell2, cell3, cell4];
 
         for c in cells.iter() {
-            assert!(!c.flags.is_flagged(FlagType::from(0b10)));
+            assert!(!c.flags.is_flagged(Flag::from(0b10)));
         }
     }
 
@@ -202,7 +202,7 @@ mod human_method_tests {
                 vec![0, 0, 0, 4, 1, 9, 0, 0, 5],
                 vec![0, 0, 0, 0, 8, 0, 0, 7, 9],
             ];
-        let mut puz = <Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>>>::new(inv.as_input().unwrap()).board;
+        let mut puz = <Puzzle<FlagSquare<Flag<u16>, Flag<u16>>>>::new(inv.as_input().unwrap()).board;
 
         let expected: Vec<Vec<u8>> = vec![
             vec![5, 3, 4, 6, 7, 8, 9, 1, 2],

@@ -147,7 +147,7 @@ pub mod brute_unit {
     use super::*;
     use crate::conv_input_output::PuzInput;
     use crate::puzzle::*;
-    use crate::sq_element::{FlagType, IntType};
+    use crate::sq_element::{Flag, IntValue};
 
     fn get_example() -> Vec<Vec<u8>> {
         vec![
@@ -181,7 +181,7 @@ pub mod brute_unit {
         .as_input()
         .unwrap();
 
-        let res: Puzzle<SimpleSquare<IntType<u8>>> = Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<SimpleSquare<IntValue>> = Puzzle::new(example.as_input().unwrap());
 
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
@@ -196,7 +196,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<SimpleSquare<FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<SimpleSquare<Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
 
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
@@ -211,7 +211,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
@@ -226,7 +226,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<Flag<u16>, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
@@ -241,7 +241,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<FlagSquare<IntType<u16>, FlagType<u32>>> =
+        let res: Puzzle<FlagSquare<IntValue, Flag<u32>>> =
             Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
@@ -299,7 +299,7 @@ pub mod brute_unit {
         .as_input()
         .unwrap();
 
-        let res: Puzzle<SimpleSquare<IntType<u8>>> = Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<SimpleSquare<IntValue>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 2);
         match res.solution.get_solution() {
             Solution::Multi(vec) => {
@@ -350,7 +350,7 @@ pub mod brute_unit {
         };
         assert_eq!(guesses1, *guess_n_check);
 
-        let res: Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 2);
         match res.solution.get_solution() {
@@ -378,7 +378,7 @@ pub mod brute_unit {
             _ => assert!(false),
         }
 
-        let res: Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<Flag<u16>, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 2);
         match res.solution.get_solution() {
@@ -406,7 +406,7 @@ pub mod brute_unit {
             _ => assert!(false),
         }
 
-        let res: Puzzle<SimpleSquare<FlagType<u16>>> = Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<SimpleSquare<Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 2);
         match res.solution.get_solution() {
             Solution::Multi(vec) => {
@@ -448,7 +448,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let res: Puzzle<FlagSquare<IntType<u16>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
 
         assert!(res.solution.num_solutions() == 2);
@@ -465,7 +465,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let res: Puzzle<FlagSquare<IntType<u16>, FlagType<u16>>> =
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
             Puzzle::new(example.as_input().unwrap());
 
         // used https://www.thonky.com/sudoku/solution-count to verify solution count

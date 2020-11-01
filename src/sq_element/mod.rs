@@ -3,8 +3,8 @@ pub(crate) mod flag_limits;
 pub(crate) mod int;
 pub(crate) mod sq_element;
 
-pub use crate::sq_element::flag::FlagType;
-pub use crate::sq_element::sq_element::IntType;
+pub use crate::sq_element::flag::Flag;
+pub use crate::sq_element::int::IntValue;
 // use crate::sq_element::flag::Flag;
 // use crate::sq_element::flag_limits::ZeroAndOne;
 // use crate::sq_element::value::NormalInt;

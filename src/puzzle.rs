@@ -4,8 +4,7 @@ use crate::solve::solution_report::*;
 use crate::sq_element::*;
 use crate::square::flag_update::FlagUpdate;
 use crate::square::*;
-use crate::sq_element::sq_element::IntType;
-use crate::sq_element::flag::FlagType;
+use crate::sq_element::flag::Flag;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
@@ -19,9 +18,9 @@ pub struct Puzzle<S: Square> {
     pub(crate) solution: SolutionReport<S>,
 }
 
-type SimpleSudoku = Puzzle<SimpleSquare<IntType<u8>>>;
-type RegSudoku = Puzzle<FlagSquare<IntType<u8>, FlagType<u16>>>;
-type RegFlagSudoku = Puzzle<FlagSquare<FlagType<u16>, FlagType<u16>>>;
+type SimpleSudoku = Puzzle<SimpleSquare<IntValue>>;
+type RegSudoku = Puzzle<FlagSquare<IntValue, Flag<u16>>>;
+type RegFlagSudoku = Puzzle<FlagSquare<Flag<u16>, Flag<u16>>>;
 //type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>>;
 
 pub trait PuzzleTrait<S: Square>: BruteForce<S> {

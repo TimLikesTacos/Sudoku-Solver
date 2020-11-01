@@ -111,11 +111,11 @@ impl<S: Square> SolutionReport<S> {
 #[cfg(test)]
 mod solution_report_tests {
     use super::*;
-    use crate::sq_element::IntType;
+    use crate::sq_element::IntValue;
     use crate::square::SimpleSquare;
 
     fn sol_tech () {
-        let mut a :SolutionReport<SimpleSquare<IntType<u16>>>= SolutionReport{
+        let mut a :SolutionReport<SimpleSquare<IntValue>>= SolutionReport{
             sol: Solution::None,
             data: Vec::new(),
         };
