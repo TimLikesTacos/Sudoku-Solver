@@ -11,16 +11,9 @@ mod grid;
 mod puzzle;
 mod support;
 mod solve;
-// mod grid;
-// mod puzzle;
-// mod square;
-// //mod grid;
 mod conv_input_output;
 mod errors;
-// mod solve;
-// pub mod support;
-// mod human_calcs;
-//mod puzzle;
+mod human_calcs;
 
 #[cfg(test)]
 mod library_tests {

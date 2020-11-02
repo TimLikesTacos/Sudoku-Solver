@@ -11,7 +11,9 @@ pub trait BruteForce<S: Square> {
     //fn valid_entry(&self, index: usize) -> bool;
 }
 
-impl<S: Square> BruteForce<S> for Puzzle<S> {
+impl<S: Square> BruteForce<S> for Puzzle<S>
+    where Grid<S>: NewGrid
+{
     /// Solves the Sudoku puzzle.  Returns a vector of 1-D vectors.  Each 1-D vector represents a
     /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
     fn brute_force_solve(&self) -> SolutionReport<S> {

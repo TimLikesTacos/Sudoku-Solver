@@ -32,7 +32,7 @@ pub trait FlElement: SqElement + AddAssign + SubAssign
     fn count_ones(flags: &Self::FlagItem) -> u8;
     fn merge(&self, slice: &[Self]) -> Self;
     fn set_from_value(&mut self, v_slice: &[u8]);
-    fn is_flagged(&self, other: Self) -> bool;
+    fn is_flagged(&self, other: &Self) -> bool;
     // fn remove_flag(&mut self, other: Self);
     fn max() -> Self;
 }

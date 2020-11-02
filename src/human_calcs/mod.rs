@@ -1,3 +1,7 @@
+/// This module is for performing human like calculations, therefore uses only
+/// squares that contain flag elements, such as FlagSquare.  Therefore, implmentation of these
+/// is only done for FlagSquare<Value, Flags> and not SimpleSquare<Value>
+pub mod basic;
 // use crate::*;
 // use std::collections::HashMap;
 // use crate::constants::*;
@@ -928,4 +932,3 @@
 //
 //     }
 // }
-mod basic;

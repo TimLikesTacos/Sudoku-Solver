@@ -207,6 +207,15 @@ impl<F: FlagElement> BitAnd for Flag<F> {
     }
 }
 
+impl<F: FlagElement> BitAnd for &Flag<F> {
+    type Output = Flag<F>;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        Flag {
+            flag: self.flag & rhs.flag,
+        }
+    }
+}
 impl<F: FlagElement> FlElement for Flag<F> {
     type FlagItem = F;
     fn count_ones(flags: &Self::FlagItem) -> u8 {
@@ -231,7 +240,7 @@ impl<F: FlagElement> FlElement for Flag<F> {
             .fold(F::ZERO, |acc, x| acc | Self::from(*x).flag);
     }
 
-    fn is_flagged(&self, other: Self) -> bool {
+    fn is_flagged(&self, other: &Self) -> bool {
         if self.flag & other.flag > F::ZERO {
             true
         } else {

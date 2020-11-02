@@ -13,7 +13,9 @@ pub enum Solutions<G: Square> {
     Multi(Vec<Grid<G>>),
 }
 
-pub struct Puzzle<S: Square> {
+pub struct Puzzle<S: Square>
+    where Grid<S>: NewGrid
+{
     pub(crate) board: Grid<S>,
     pub(crate) solution: SolutionReport<S>,
 }
@@ -30,7 +32,9 @@ pub trait PuzzleTrait<S: Square>: BruteForce<S> {
     fn reset_square(&mut self, index: usize);
 }
 
-impl<S: Square + FlagUpdate> PuzzleTrait<S> for Puzzle<S> {
+impl<S: Square> PuzzleTrait<S> for Puzzle<S>
+    where Grid<S>: NewGrid
+{
     fn new(input_vec: Vec<u8>) -> Self {
         let g: Grid<S>;
         g = Grid::new(input_vec);

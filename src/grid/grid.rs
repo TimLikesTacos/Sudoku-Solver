@@ -12,6 +12,52 @@ pub struct Grid<S: Square> {
     pub(crate) grid: Vec<S>,
 }
 
+pub trait NewGrid {
+    fn new(input_vec: Vec<u8>) -> Self;
+}
+
+impl <S: Square> Grid<S> {
+    fn new_grid (input_vec: &Vec<u8>) -> Grid<S> {
+        Grid {
+            grid: input_vec
+                .iter()
+                .map(|x| {
+                    if *x == 0 {
+                        S::new(*x, false)
+                    } else {
+                        S::new(*x, true)
+                    }
+                })
+                .collect(),
+        }
+    }
+}
+
+impl <V: SqElement> NewGrid for Grid<SimpleSquare<V>>
+    where SimpleSquare<V>: Square
+{
+    fn new(input_vec: Vec<u8>) -> Self {
+        Grid::new_grid(&input_vec)
+    }
+}
+
+impl <V: SqElement, F: FlElement> NewGrid for Grid<FlagSquare<V, F>>
+    where FlagSquare<V,F>: Square + FlagUpdate
+{
+    fn new (input_vec:Vec<u8>) -> Self {
+        let mut g: Grid<FlagSquare<V, F>> = Grid::new_grid(&input_vec);
+        for i in 0..NUM_CELLS {
+            if g[i].fixed {
+                continue;
+            }
+            let it = g.single_iterator(i);
+            let mut copy = g[i].clone();
+            copy.set_initial(it);
+            g[i] = copy;
+        }
+        g
+    }
+}
 impl <S: Square> Display for Grid<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut res = fmt::Result::Ok(());
@@ -90,32 +136,32 @@ where
 }
 
 impl<S: Square + Clone> Grid<S> {
-    pub fn new(input_vec: Vec<u8>) -> Grid<S>
-    where
-        S: Square + FlagUpdate,
-    {
-        let mut g = Grid {
-            grid: input_vec
-                .iter()
-                .map(|x| {
-                    if *x == 0 {
-                        S::new(*x, false)
-                    } else {
-                        S::new(*x, true)
-                    }
-                })
-                .collect(),
-        };
-        if S::has_flags() {
-            for i in 0..NUM_CELLS {
-                let it = g.single_iterator(i);
-                let mut copy = g[i].clone();
-                copy.set_initial(it);
-                g[i] = copy;
-            }
-        }
-        g
-    }
+    // pub fn new(input_vec: Vec<u8>) -> Grid<S>
+    // where
+    //     S: Square + FlagUpdate,
+    // {
+    //     let mut g = Grid {
+    //         grid: input_vec
+    //             .iter()
+    //             .map(|x| {
+    //                 if *x == 0 {
+    //                     S::new(*x, false)
+    //                 } else {
+    //                     S::new(*x, true)
+    //                 }
+    //             })
+    //             .collect(),
+    //     };
+    //     if S::has_flags() {
+    //         for i in 0..NUM_CELLS {
+    //             let it = g.single_iterator(i);
+    //             let mut copy = g[i].clone();
+    //             copy.set_initial(it);
+    //             g[i] = copy;
+    //         }
+    //     }
+    //     g
+    // }
     /// Iterate over the entire 1-D row dominate grid vector
     pub fn grid_iter(&self) -> impl Iterator<Item = &S> {
         self.grid.iter()
@@ -181,14 +227,20 @@ impl<S: Square + Clone> Grid<S> {
 }
 
 impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
-    where FlagSquare<V,F>: FlagUpdate
+    where FlagSquare<V,F>: Square<Type = V> + FlagUpdate<FlagElement = F>,
+
 {
-    pub(crate) fn set_value_update_flags (&mut self, index: usize, value: V) {
+    pub(crate) fn set_value_update_flags<IN: SqElement>(&mut self, index: usize, value: IN)
+    where V: From<IN>, F: From<IN>,
+    {
         let f_remove = F::from(value);
-        self[index].set(value);
-        self.row_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
-        self.col_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
-        self.box_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+        self[index].set(V::from(value));
+        self.row_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);
+        self.col_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);
+        self.box_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);
+        // self.row_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+        // self.col_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+        // self.box_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
     }
 
     /// O(9 * MAX_NUM^2). Intensive calculation, avoid when possible

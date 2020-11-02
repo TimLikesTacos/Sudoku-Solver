@@ -37,7 +37,7 @@ pub trait BasicHumanMethods {
 }
 
 impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<FlagSquare<V, F>>
-    where FlagSquare<V,F>: FlagUpdate
+    where FlagSquare<V,F>: FlagUpdate<FlagElement = F>
 {
     // O(n) where n is the number of cells
     fn single_candidate(&mut self) -> SolveTech {
@@ -48,8 +48,8 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<
         loop {
 
             // get list of single candidate cells
-            let singles: Vec<(usize, V)> = self.grid_iter().enumerate().filter(|(_, s)| s.count == 1)
-                .map(|(i, s)| (i, s.get_element())).collect();
+            let singles: Vec<(usize, F)> = self.grid_iter().enumerate().filter(|(_, s)| s.count == 1)
+                .map(|(i, s)| (i, s.flags)).collect();
 
             // Exit loop if no new singles are found.
             if singles.len() == 0 {
@@ -160,7 +160,7 @@ mod human_method_tests {
         ]
     }
 
-    fn get_puzzle() -> Puzzle<FlagSquare<IntValue<u8>, Flag<u16>>> {
+    fn get_puzzle() -> Puzzle<FlagSquare<IntValue, Flag<u16>>> {
         Puzzle::new(get_example().as_input().unwrap())
     }
 
@@ -173,7 +173,7 @@ mod human_method_tests {
         let cell4 = puz[73];
         let cells = [cell1, cell2, cell3, cell4];
         for c in cells.iter() {
-            assert!(c.flags.is_flagged(Flag::from(0b10)));
+            assert!(c.flags.is_flagged(&Flag::from(0b10)));
         }
         puz.set_value_update_flags(10, IntValue::from(2));
 
@@ -184,7 +184,7 @@ mod human_method_tests {
         let cells = [cell1, cell2, cell3, cell4];
 
         for c in cells.iter() {
-            assert!(!c.flags.is_flagged(Flag::from(0b10)));
+            assert!(!c.flags.is_flagged(&Flag::from(0b10)));
         }
     }
 

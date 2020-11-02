@@ -52,11 +52,16 @@ impl SqElement for IntValue {
     fn set<F: SqElement>(&mut self, value: F)
         where Self: From<F>
     {
-        self.value = Self::from(value).value;
+        self.value = (IntValue::from(value)).value;
     }
 
 }
 
+// impl <V: SqElement> From<V> for IntValue {
+//     fn from(other: V) -> Self {
+//         Self::from(u8::from(other));
+//     }
+// }
 // Conver to usize.  Useful for output.
 impl From<IntValue> for usize {
     fn from(other: IntValue) -> Self {

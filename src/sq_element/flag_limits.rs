@@ -33,7 +33,7 @@ pub trait FlagLimits: ZeroAndOne {
 }
 impl FlagLimits for u16 {
     const VMAX: Self = 0b100_000_000;
-    const FMAX: Self = 0b111111111;
+    const FMAX: Self = 0b111_111_111;
 }
 
 /*

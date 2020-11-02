@@ -22,10 +22,10 @@ pub trait Square: PartialEq + Clone + Display
 where
     Self::Value: Sized + PartialEq,
 {
-    type Type;
+    type Type : SqElement;
     type Value;
-    fn set <V: SqElement>(&mut self, v: V)
-        where Self::Type: From<V>;
+    fn set (&mut self, v: Self::Type);
+        //where Self::Type: From<V>;
     fn exportv(&self) -> u8;
     fn has_flags() -> bool;
     fn fixed(&self) -> bool;
@@ -44,10 +44,10 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     type Type = Vt;
     type Value = Vt::Item;
 
-    fn set<V: SqElement>(&mut self, v: V)
-        where Self::Type: From<V>
+    fn set(&mut self, v: Vt)
+       // where Self::Type: From<V>
     {
-        self.value.set(v)
+        self.value = v
     }
     fn fixed(&self) -> bool {
         self.fixed
@@ -83,7 +83,7 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
         // increment once
         let mut not_maxed = f.inc();
         // increment until matches possible in flag
-        while !self.flags.is_flagged(f) && not_maxed {
+        while !self.flags.is_flagged(&f) && not_maxed {
             not_maxed = f.inc();
         }
 
@@ -165,11 +165,11 @@ impl Square for SimpleSquare<IntValue>
         }
     }
 
-    fn set<V2:SqElement>(&mut self, v: V2)
-        where Self::Type: From<V2>
+    fn set(&mut self, v: IntValue)
+       // where Self::Type: From<V2>
 
     {
-        self.value.set(v)
+        self.value = v
     }
 
     fn zero() -> Self::Value {
@@ -188,10 +188,10 @@ where
     type Type = Flag<F>;
     type Value = F;
 
-    fn set<V: SqElement>(&mut self, v: V)
-        where Self::Type: From<V>
+    fn set(&mut self, v: Flag<F>)
+        //where Self::Type: From<V>
     {
-        self.value.set(v)
+        self.value = v
     }
 
     fn getv(&self) -> Self::Value {
@@ -240,6 +240,8 @@ where
         Flag::one().get()
     }
 }
+
+
 
 impl<OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
 where
@@ -315,10 +317,10 @@ mod square_tests {
         assert_eq!(a.fixed, true);
 
         let mut c: FlagSquare<Flag<u16>, Flag<u16>> = FlagSquare::new(3u8, true);
-        a.set(c.get_element());
+        a.set(IntValue::from(c.get_element()));
         assert_eq!(a.getv(), 3);
         assert_eq!(a.fixed, true);
-        c.set(b.get_element());
+        c.set(<Flag<u16>>::from(b.get_element()));
         assert_eq!(c.getv(), 2);
         assert_eq!(c.fixed, true);
 
