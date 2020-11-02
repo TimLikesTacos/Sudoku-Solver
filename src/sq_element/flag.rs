@@ -33,7 +33,7 @@ impl FlagElement for u16 {}
 impl FlagElement for u32 {}
 
 
-#[derive(Copy, Clone, Default, Debug, PartialEq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct Flag<F: FlagElement> {
     pub(crate) flag: F,
 }
@@ -200,8 +200,8 @@ impl<F: FlagElement> SubAssign for Flag<F> {
 impl<F: FlagElement> BitAnd for Flag<F> {
     type Output = Self;
 
-    fn bitand(self, rhs: Self) -> Self::Output {
-        Self {
+    fn bitand(self, rhs: Self) -> Flag<F> {
+        Flag {
             flag: self.flag & rhs.flag,
         }
     }
@@ -210,16 +210,25 @@ impl<F: FlagElement> BitAnd for Flag<F> {
 impl<F: FlagElement> BitAnd for &Flag<F> {
     type Output = Flag<F>;
 
-    fn bitand(self, rhs: Self) -> Self::Output {
+    fn bitand(self, rhs: Self) -> Flag<F> {
         Flag {
             flag: self.flag & rhs.flag,
         }
     }
 }
+
+impl<F: FlagElement> BitOr for Flag<F> {
+    type Output = Flag<F>;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Flag {
+            flag: self.flag | rhs.flag
+        }
+    }
+}
 impl<F: FlagElement> FlElement for Flag<F> {
     type FlagItem = F;
-    fn count_ones(flags: &Self::FlagItem) -> u8 {
-        let mut f = *flags;
+    fn count_ones(flags: &Self) -> u8 {
+        let mut f = flags.flag;
         let mut count = 0;
         while f > F::ZERO {
             f = f & (f - F::ONE);

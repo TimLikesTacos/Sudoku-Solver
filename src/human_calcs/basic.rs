@@ -4,6 +4,7 @@ use crate::grid::{NUM_CELLS, Grid, MAX_NUM};
 use crate::sq_element::sq_element::{SqElement, FlElement};
 use crate::support::{get_cell, index_from_box, index_from_row, index_from_col, start_of_box};
 use crate::square::flag_update::FlagUpdate;
+use std::ops::{BitOr, BitAnd, Sub};
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -36,7 +37,7 @@ pub trait BasicHumanMethods {
     // fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)>;
 }
 
-impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<FlagSquare<V, F>>
+impl <V: SqElement + From<F>, F: FlElement + From<V> + BitAnd<Output = F> + BitOr<Output = F> + Sub<Output = F>> BasicHumanMethods for Grid<FlagSquare<V, F>>
     where FlagSquare<V,F>: FlagUpdate<FlagElement = F>
 {
     // O(n) where n is the number of cells
@@ -46,7 +47,6 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<
         /* Solving one single candidate may make other single candidates 'earlier' in the grid.
          * Loop until no new singles are found. */
         loop {
-
             // get list of single candidate cells
             let singles: Vec<(usize, F)> = self.grid_iter().enumerate().filter(|(_, s)| s.count == 1)
                 .map(|(i, s)| (i, s.flags)).collect();
@@ -65,7 +65,56 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<
 
         SolveTech::SingleCandidates(amount)
     }
+    fn single_possibility(&mut self) -> SolveTech {
+        /**
+        * Ones: Bitwise OR, starting from all 0.  If it has been used at least once, it be 1,
+        * Multis: Selfassign bitwise or with (Ones(n-1) bitwiseAND current)
+        * Ones:  0000
+        * Multi: 0000
+        * S1  :  0100
+        * Ones:  0100
+        * Multi: 0000
+        * S2:    1010
+        * Ones:  1110
+        * Multi: 0000
+        * S3:    1100
+        * Ones:  1110
+        * Multi: 1100
+        *
+        * Single possiblities will be 1's in Ones, but not in Multi
+        **/
+        let mut cands:usize = 0;
+        loop {
+            for i in 0..MAX_NUM {
+                let initial = cands;
 
+                let mut ones= F::zero();
+                let mut multi = F::zero();
+
+                let row_start = index_from_row(1, 0);
+                for s in self.row_iter(row_start) {
+                    multi = multi | (ones & s.flags);
+                    ones = ones | s.flags;
+                }
+                // Singles are the difference in ones and multi
+                let singles = ones - multi;
+                for (step, s) in self.row_iter_mut(row_start).enumerate() {
+                    let res = s.flags & singles;
+                    if s.flags & singles > F::zero() {
+                        assert_eq!(F::count_ones(&res), 1);
+                        let index = index_from_row(i, step);
+                        self.set_value_update_flags(index, res);
+                        cands += 1;
+                    }
+                }
+
+                if cands == initial {
+                    break;
+                }
+            }
+        }
+        SolveTech::SingleCandidates(cands)
+    }
     fn naked_tuple(&mut self) -> SolveTech {
         unimplemented!()
     }
@@ -74,9 +123,6 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>>BasicHumanMethods for Grid<
         unimplemented!()
     }
 
-    fn single_possibility(&mut self) -> SolveTech {
-        unimplemented!()
-    }
 
     fn single_possibility_slower(&mut self) -> SolveTech {
         unimplemented!()

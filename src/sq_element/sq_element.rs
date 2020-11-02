@@ -4,7 +4,7 @@ use crate::sq_element::int::{ IntValue};
 use std::fmt::{Display, Formatter};
 use crate::sq_element::flag_limits::{ZeroAndOne, FlagLimits};
 use std::fmt;
-use std::ops::{AddAssign, SubAssign};
+use std::ops::{AddAssign, SubAssign, BitAnd, BitOr};
 
 pub trait OneZero {
     type Value: ZeroAndOne;
@@ -14,7 +14,7 @@ pub trait OneZero {
 
 
 
-pub trait SqElement: OneZero + Default + PartialEq + Into<u8> + From<u8> + Copy + Clone {
+pub trait SqElement: OneZero + Default + PartialEq + PartialOrd + Into<u8> + From<u8> + Copy + Clone {
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset(&mut self);
@@ -29,7 +29,7 @@ pub trait FlElement: SqElement + AddAssign + SubAssign
         Self::FlagItem: FlagLimits + FlagElement,
 {
     type FlagItem;
-    fn count_ones(flags: &Self::FlagItem) -> u8;
+    fn count_ones(flags: &Self) -> u8;
     fn merge(&self, slice: &[Self]) -> Self;
     fn set_from_value(&mut self, v_slice: &[u8]);
     fn is_flagged(&self, other: &Self) -> bool;

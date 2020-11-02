@@ -7,7 +7,7 @@ use crate::sq_element::flag_limits::{IntLimits, ZeroAndOne};
 use std::ops::Add;
 use std::fmt;
 
-#[derive(Copy, Clone, Default, Debug, PartialEq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct IntValue {
     pub(crate) value: u8,
 }

@@ -26,14 +26,14 @@ where
         self.flags = it.fold(Flag::max(), |acc, x| {
             acc - <Flag<F2>>::from(x.value)
         });
-        self.count = Flag::count_ones(&self.flags.get());
+        self.count = Flag::count_ones(&self.flags);
     }
 
     fn remove_flag(&mut self, other: Flag<F2>)
     {
         if self.flags.is_flagged(&other) {
-            let similar = self.flags & other;
-            let num = Flag::count_ones(&similar.flag);
+            let similar: Flag<F2> = self.flags & other;
+            let num = Flag::count_ones(&similar);
             self.flags -= other;
             self.count -= num;
         }
@@ -53,13 +53,13 @@ where
         self.flags = it.fold(Flag::max(), |acc, x| {
             acc - <Flag<F2>>::from(x.value)
         });
-        self.count = Flag::count_ones(&self.flags.get());
+        self.count = Flag::count_ones(&self.flags);
     }
 
     fn remove_flag(&mut self, other: Flag<F2>) {
 
         if self.flags.is_flagged(&other) {
-            let num = Flag::count_ones(&(&self.flags & &other).flag);
+            let num = Flag::count_ones(&(&self.flags & &other));
             self.flags -= other;
             self.count -= num;
         }
