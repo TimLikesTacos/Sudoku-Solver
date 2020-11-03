@@ -4,7 +4,8 @@ use crate::grid::{NUM_CELLS, Grid, MAX_NUM};
 use crate::sq_element::sq_element::{SqElement, FlElement};
 use crate::support::{get_cell, index_from_box, index_from_row, index_from_col, start_of_box};
 use crate::square::flag_update::FlagUpdate;
-use std::ops::{BitOr, BitAnd, Sub};
+use std::ops::{BitOr, BitAnd, Sub, BitXor};
+use std::fmt::Debug;
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -37,8 +38,8 @@ pub trait BasicHumanMethods {
     // fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)>;
 }
 
-impl <V: SqElement + From<F>, F: FlElement + From<V> + BitAnd<Output = F> + BitOr<Output = F> + Sub<Output = F>> BasicHumanMethods for Grid<FlagSquare<V, F>>
-    where FlagSquare<V,F>: FlagUpdate<FlagElement = F>
+impl <V: SqElement + From<F>, F: FlElement + From<V> + BitAnd<Output = F> + BitOr<Output = F> + Sub<Output = F> + BitXor<Output=F>> BasicHumanMethods for Grid<FlagSquare<V, F>>
+    where FlagSquare<V,F>: FlagUpdate<FlagElement = F>, F: Debug
 {
     // O(n) where n is the number of cells
     fn single_candidate(&mut self) -> SolveTech {
@@ -84,36 +85,46 @@ impl <V: SqElement + From<F>, F: FlElement + From<V> + BitAnd<Output = F> + BitO
         * Single possiblities will be 1's in Ones, but not in Multi
         **/
         let mut cands:usize = 0;
-        loop {
+        loop  {
+            let initial = cands;
             for i in 0..MAX_NUM {
-                let initial = cands;
 
                 let mut ones= F::zero();
                 let mut multi = F::zero();
 
-                let row_start = index_from_row(1, 0);
+                let row_start = index_from_row(i, 0);
                 for s in self.row_iter(row_start) {
                     multi = multi | (ones & s.flags);
                     ones = ones | s.flags;
                 }
                 // Singles are the difference in ones and multi
-                let singles = ones - multi;
-                for (step, s) in self.row_iter_mut(row_start).enumerate() {
-                    let res = s.flags & singles;
-                    if s.flags & singles > F::zero() {
-                        assert_eq!(F::count_ones(&res), 1);
-                        let index = index_from_row(i, step);
-                        self.set_value_update_flags(index, res);
-                        cands += 1;
-                    }
+                let singles = ones ^ multi;
+                dbg!(&ones, &multi, &singles);
+                // Find the singles if any
+                let pairs: Vec<(usize, F)> = self.row_iter(row_start)
+                    .enumerate()
+                    .map( |(x, s)|(x, s.flags & singles))
+                    .filter(|(_, v)| v > &F::zero())
+                    .collect();
+
+                // update values and affected flags
+                // if i == 2 {
+                //     dbg!(&pairs);
+                //     assert_eq!(pairs[0].0, 6);
+                //     assert_eq!(pairs[0].1, F::from(5))
+                // }
+                cands += pairs.len();
+                for p in pairs {
+                    assert_eq!(F::count_ones(&p.1), 1);
+                    self.set_value_update_flags(index_from_row(i, p.0), p.1);
                 }
 
-                if cands == initial {
-                    break;
-                }
+            }
+            if cands == initial {
+                break ;
             }
         }
-        SolveTech::SingleCandidates(cands)
+        SolveTech::SinglePossibilities(cands)
     }
     fn naked_tuple(&mut self) -> SolveTech {
         unimplemented!()
@@ -189,8 +200,10 @@ impl <V: SqElement + From<F>, F: FlElement + From<V> + BitAnd<Output = F> + BitO
 mod human_method_tests {
     use super::*;
     use crate::puzzle::{Puzzle, PuzzleTrait};
-    use crate::conv_input_output::PuzInput;
+    use crate::conv_input_output::{PuzInput, PuzOutput};
     use crate::sq_element::{Flag, IntValue};
+    use crate::solve::brute::BruteForce;
+    use crate::solve::solution_report::Solution;
 
     fn get_example() -> Vec<Vec<u8>> {
         vec![
@@ -269,6 +282,84 @@ mod human_method_tests {
         // This puzzle is solved by 100% single candidates.
         for (act, exp) in puz.grid_iter().zip(expected.iter().flatten()) {
             assert_eq!(act.exportv(), *exp);
+        }
+    }
+
+    #[test]
+    fn single_possibility_test() {
+
+        let mut puz : Puzzle<FlagSquare<IntValue, Flag<u16>>> = Puzzle::new(
+            vec![
+                vec![5, 3, 4, 0, 7, 0, 0, 0, 0],
+                vec![6, 0, 2, 1, 9, 5, 0, 0, 0],
+                vec![0, 9, 8, 0, 0, 0, 0, 6, 0],
+                vec![8, 0, 0, 0, 6, 0, 0, 0, 3],
+                vec![4, 0, 0, 8, 0, 3, 0, 0, 1],
+                vec![0, 1, 0, 0, 2, 0, 0, 0, 6],
+                vec![0, 6, 0, 0, 0, 0, 2, 8, 0],
+                vec![0, 0, 0, 4, 1, 9, 0, 0, 5],
+                vec![0, 0, 0, 0, 8, 0, 0, 7, 9],
+            ]
+            .as_input()
+            .unwrap(),
+        );
+
+        let expected: Vec<u8> = (vec![
+            vec![5, 3, 4, 6, 7, 8, 9, 1, 2],
+            vec![6, 7, 2, 1, 9, 5, 3, 4, 8],
+            vec![1, 9, 8, 3, 4, 2, 5, 6, 7],
+            vec![8, 5, 9, 7, 6, 1, 4, 2, 3],
+            vec![4, 2, 6, 8, 5, 3, 7, 9, 1],
+            vec![7, 1, 3, 9, 2, 4, 8, 5, 6],
+            vec![9, 6, 1, 5, 3, 7, 2, 8, 4],
+            vec![2, 8, 7, 4, 1, 9, 6, 3, 5],
+            vec![3, 4, 5, 2, 8, 6, 1, 7, 9],
+        ])
+        .as_input()
+        .unwrap();
+
+        if let SolveTech::SinglePossibilities(res) = puz.board.single_possibility() {
+            //dbg!(&res);
+            assert!(res > 4);
+            dbg!(&res);
+        } else {
+
+            assert!(false);
+        }
+
+
+        // assert!(res.contains(&(get_cell(2, 6), 5)));
+        // assert!(res.contains(&(get_cell(5, 6), 8)));
+        // assert!(res.contains(&(get_cell(6, 2), 1)));
+        // assert!(res.contains(&(get_cell(3, 5), 1)));
+
+        /* This puzzle does not get completely solved using this method.
+         * The remaining portion of the puzzle with be solve forced solved to ensure that the solving is correct
+         */
+        let finished = puz.brute_force_solve();
+        let guesses = finished.tech_iter(SolveTech::Guesses).map(|t| t.clone()).collect::<Vec<SolveTech>>();
+        assert_eq!(guesses.len(), 1);
+        if let SolveTech::Guesses(g) = guesses[0] {
+            // dbg!(&g);
+            if g > 0 {
+                assert!(g > 0);
+            } else {
+                if let Solution::One(s) = &finished.sol {
+                    // dbg!(&s);
+                    assert!(s.grid_iter().zip(puz.board.grid_iter()).all(|(s, e)| s.exportv() == e.exportv()));
+                } else {
+                    assert!(false);
+                }
+
+            }
+        } else {
+            assert!(false);
+        }
+        if let Solution::One(s) = finished.sol {
+            // dbg!(&s);
+           assert!(s.grid_iter().zip(expected.iter()).all(|(s, e)| s.exportv() == *e));
+        } else {
+            assert!(false);
         }
     }
 }

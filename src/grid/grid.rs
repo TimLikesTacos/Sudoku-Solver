@@ -235,6 +235,7 @@ impl <V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
     {
         let f_remove = F::from(value);
         self[index].set(V::from(value));
+        self[index].remove_flag(F::max());
         self.row_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);
         self.col_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);
         self.box_iter_mut(index).map(|s|s.remove_flag(f_remove)).all(|_|true);

@@ -225,6 +225,16 @@ impl<F: FlagElement> BitOr for Flag<F> {
         }
     }
 }
+
+impl<F: FlagElement> BitXor for Flag<F> {
+    type Output = Flag<F>;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Flag {
+            flag: self.flag ^ rhs.flag
+        }
+    }
+}
 impl<F: FlagElement> FlElement for Flag<F> {
     type FlagItem = F;
     fn count_ones(flags: &Self) -> u8 {
