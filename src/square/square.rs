@@ -1,8 +1,8 @@
 use crate::sq_element::flag::*;
-use crate::sq_element::int::{IntValue};
+use crate::sq_element::int::IntValue;
 use crate::sq_element::sq_element::*;
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FlagSquare<E: SqElement, F: FlElement> {
@@ -22,10 +22,10 @@ pub trait Square: PartialEq + Clone + Display
 where
     Self::Value: Sized + PartialEq,
 {
-    type Type : SqElement;
+    type Type: SqElement;
     type Value;
-    fn set (&mut self, v: Self::Type);
-        //where Self::Type: From<V>;
+    fn set(&mut self, v: Self::Type);
+    //where Self::Type: From<V>;
     fn exportv(&self) -> u8;
     fn has_flags() -> bool;
     fn fixed(&self) -> bool;
@@ -45,7 +45,7 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     type Value = Vt::Item;
 
     fn set(&mut self, v: Vt)
-       // where Self::Type: From<V>
+    // where Self::Type: From<V>
     {
         self.value = v
     }
@@ -55,7 +55,9 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Type {self.value}
+    fn get_element(&self) -> Self::Type {
+        self.value
+    }
     fn exportv(&self) -> u8 {
         self.value.clone().into()
         //u8::from(self.value.clone())
@@ -124,16 +126,16 @@ impl<Vt: SqElement + Into<Ft> + From<Ft>, Ft: FlElement + From<Vt>> Square for F
     }
 }
 
-impl Square for SimpleSquare<IntValue>
-
-{
+impl Square for SimpleSquare<IntValue> {
     type Type = IntValue;
     type Value = u8;
 
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Type {self.value}
+    fn get_element(&self) -> Self::Type {
+        self.value
+    }
     fn exportv(&self) -> u8 {
         u8::from(self.value)
     }
@@ -166,8 +168,7 @@ impl Square for SimpleSquare<IntValue>
     }
 
     fn set(&mut self, v: IntValue)
-       // where Self::Type: From<V2>
-
+    // where Self::Type: From<V2>
     {
         self.value = v
     }
@@ -189,7 +190,7 @@ where
     type Value = F;
 
     fn set(&mut self, v: Flag<F>)
-        //where Self::Type: From<V>
+    //where Self::Type: From<V>
     {
         self.value = v
     }
@@ -197,7 +198,9 @@ where
     fn getv(&self) -> Self::Value {
         self.value.get()
     }
-    fn get_element(&self) -> Self::Type {self.value}
+    fn get_element(&self) -> Self::Type {
+        self.value
+    }
 
     fn exportv(&self) -> u8 {
         u8::from(self.value)
@@ -241,8 +244,6 @@ where
     }
 }
 
-
-
 impl<OS: Square, V: SqElement> PartialEq<OS> for SimpleSquare<V>
 where
     SimpleSquare<V>: Square + From<OS>,
@@ -262,24 +263,28 @@ where
     }
 }
 
-
-
-impl <E: SqElement> Display for SimpleSquare<E>
-    where SimpleSquare<E>: Square{
+impl<E: SqElement> Display for SimpleSquare<E>
+where
+    SimpleSquare<E>: Square,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.exportv())
     }
 }
 
-impl <E: SqElement, F: FlElement> Display for FlagSquare<E, F>
-    where FlagSquare<E, F>: Square{
+impl<E: SqElement, F: FlElement> Display for FlagSquare<E, F>
+where
+    FlagSquare<E, F>: Square,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.exportv())
     }
 }
 
-impl <V: SqElement, F: FlElement> FlagSquare<V, F> {
-    fn count (&self) -> u8 {self.count}
+impl<V: SqElement, F: FlElement> FlagSquare<V, F> {
+    fn count(&self) -> u8 {
+        self.count
+    }
 }
 #[cfg(test)]
 mod square_tests {
@@ -323,7 +328,6 @@ mod square_tests {
         c.set(<Flag<u16>>::from(b.get_element()));
         assert_eq!(c.getv(), 2);
         assert_eq!(c.fixed, true);
-
     }
 
     #[test]

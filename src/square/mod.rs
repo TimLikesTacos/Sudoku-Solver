@@ -5,4 +5,3 @@ mod from_sq;
 mod square;
 
 pub use square::*;
-

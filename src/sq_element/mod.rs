@@ -17,7 +17,4 @@ pub use crate::sq_element::int::IntValue;
 mod sq_element_mod {
     #[test]
     fn tests() {}
-
 }
-
-

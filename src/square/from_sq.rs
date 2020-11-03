@@ -1,8 +1,7 @@
 use crate::sq_element::flag::*;
-use crate::sq_element::sq_element::{FlElement};
-use crate::square::square::*;
 use crate::sq_element::int::IntValue;
-
+use crate::sq_element::sq_element::FlElement;
+use crate::square::square::*;
 
 impl From<u8> for SimpleSquare<IntValue> {
     fn from(v: u8) -> Self {
@@ -33,7 +32,7 @@ impl<Ft: FlElement + From<u8>> From<u8> for FlagSquare<IntValue, Ft> {
     }
 }
 
-impl <Ft: FlElement> From<&u8> for FlagSquare<IntValue, Ft> {
+impl<Ft: FlElement> From<&u8> for FlagSquare<IntValue, Ft> {
     fn from(v: &u8) -> Self {
         FlagSquare {
             value: IntValue::from(v),
@@ -79,9 +78,7 @@ impl<F: FlagElement, Ft: FlElement + From<u8>> From<u8> for FlagSquare<Flag<F>, 
 *to implement from<intType<V1>> for IntType<V2> since the basic form of From<T> to <T> is ambiguous.
 * Can try creating new trait that converts values to values.
  */
-impl<Ft: FlElement> From<SimpleSquare<IntValue>>
-    for FlagSquare<IntValue, Ft>
-{
+impl<Ft: FlElement> From<SimpleSquare<IntValue>> for FlagSquare<IntValue, Ft> {
     fn from(other: SimpleSquare<IntValue>) -> Self {
         FlagSquare {
             value: <IntValue>::from(usize::from(other.value)),
@@ -92,9 +89,7 @@ impl<Ft: FlElement> From<SimpleSquare<IntValue>>
     }
 }
 
-impl<Ft: FlElement, V2: FlagElement> From<SimpleSquare<IntValue>>
-    for FlagSquare<Flag<V2>, Ft>
-{
+impl<Ft: FlElement, V2: FlagElement> From<SimpleSquare<IntValue>> for FlagSquare<Flag<V2>, Ft> {
     fn from(other: SimpleSquare<IntValue>) -> Self {
         FlagSquare {
             value: Flag::from(usize::from(other.value)),
@@ -118,9 +113,7 @@ impl<Ft: FlElement, F: FlagElement, F2: FlagElement> From<SimpleSquare<Flag<F2>>
     }
 }
 
-impl<Ft: FlElement, F: FlagElement> From<SimpleSquare<Flag<F>>>
-    for FlagSquare<IntValue, Ft>
-{
+impl<Ft: FlElement, F: FlagElement> From<SimpleSquare<Flag<F>>> for FlagSquare<IntValue, Ft> {
     fn from(other: SimpleSquare<Flag<F>>) -> Self {
         FlagSquare {
             value: IntValue::from(usize::from(other.value)),
@@ -151,9 +144,7 @@ impl<Ft: FlElement, F: FlagElement, F2: FlagElement> From<FlagSquare<Flag<F>, Ft
     }
 }
 
-impl<Ft: FlElement, F: FlagElement> From<FlagSquare<Flag<F>, Ft>>
-    for SimpleSquare<IntValue>
-{
+impl<Ft: FlElement, F: FlagElement> From<FlagSquare<Flag<F>, Ft>> for SimpleSquare<IntValue> {
     fn from(other: FlagSquare<Flag<F>, Ft>) -> Self {
         SimpleSquare {
             value: IntValue::from(usize::from(other.value)),

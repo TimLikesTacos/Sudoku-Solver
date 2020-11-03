@@ -1,7 +1,7 @@
 use crate::grid::Grid;
 use crate::square::Square;
-use std::fmt::{Display, Formatter};
 use std::fmt;
+use std::fmt::{Display, Formatter};
 
 /// SolutionReport struct holds the solution, which is an enum describing the number of solutions,
 /// and a vector of the methods used to solve the puzzle.  Brute force only uses SolveTech::Guesses.
@@ -32,7 +32,7 @@ pub enum SolveTech {
 }
 
 /* Default impl */
-impl <S: Square> Default for SolutionReport<S> {
+impl<S: Square> Default for SolutionReport<S> {
     fn default() -> Self {
         SolutionReport {
             sol: Solution::None,
@@ -45,34 +45,35 @@ impl <S: Square> Default for SolutionReport<S> {
 impl Display for SolveTech {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            SolveTech::Guesses(v) =>  write!(f, "Guesses: {}", v),
-            SolveTech::SingleCandidates(v) =>  write!(f, "Single Candidates: {}", v),
-            SolveTech::SinglePossibilities(v) =>  write!(f, "Single Possibilities: {}", v),
-            SolveTech::LockedCandidates(v) =>  write!(f, "Locked Candidates: {}", v),
-            SolveTech::HiddenTuples((s, v)) =>  write!(f, "Hidden {}-uple: {}", s, v),
-            SolveTech::PointingTuples((s, v))=>  write!(f, "Pointing {}-uples: {}", s, v),
+            SolveTech::Guesses(v) => write!(f, "Guesses: {}", v),
+            SolveTech::SingleCandidates(v) => write!(f, "Single Candidates: {}", v),
+            SolveTech::SinglePossibilities(v) => write!(f, "Single Possibilities: {}", v),
+            SolveTech::LockedCandidates(v) => write!(f, "Locked Candidates: {}", v),
+            SolveTech::HiddenTuples((s, v)) => write!(f, "Hidden {}-uple: {}", s, v),
+            SolveTech::PointingTuples((s, v)) => write!(f, "Pointing {}-uples: {}", s, v),
         }
     }
 }
 
-impl <S: Square> Display for Solution<S> {
+impl<S: Square> Display for Solution<S> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         const DISPLAY_MAX: u8 = 10;
         match self {
             Solution::None => write!(f, "No solution"),
             Solution::One(v) => write!(f, "{}", v),
-            Solution::Multi(vec) =>
+            Solution::Multi(vec) => {
+                let mut r = Ok(());
+                for r in vec
+                    .iter()
+                    .take(DISPLAY_MAX as usize)
+                    .map(|s| write!(f, "{}", s))
                 {
-                    let mut r = Ok(());
-                    for r in vec.iter().take(DISPLAY_MAX as usize)
-                        .map(|s| write!(f, "{}", s)){
-                        if r.is_err() {
-                            return r;
-                        }
+                    if r.is_err() {
+                        return r;
                     }
-                    r
                 }
-
+                r
+            }
         }
     }
 }
@@ -96,7 +97,7 @@ impl<S: Square> SolutionReport<S> {
         &self.sol
     }
 
-    pub fn add_tech(&mut self, tech: SolveTech){
+    pub fn add_tech(&mut self, tech: SolveTech) {
         self.data.push(tech)
     }
     pub fn all_tech_iter(&self) -> impl Iterator<Item = &SolveTech> {
@@ -109,15 +110,14 @@ impl<S: Square> SolutionReport<S> {
     }
 }
 
-
 #[cfg(test)]
 mod solution_report_tests {
     use super::*;
     use crate::sq_element::IntValue;
     use crate::square::SimpleSquare;
 
-    fn sol_tech () {
-        let mut a :SolutionReport<SimpleSquare<IntValue>>= SolutionReport{
+    fn sol_tech() {
+        let mut a: SolutionReport<SimpleSquare<IntValue>> = SolutionReport {
             sol: Solution::None,
             data: Vec::new(),
         };
@@ -127,15 +127,36 @@ mod solution_report_tests {
         a.add_tech(SolveTech::Guesses(100));
 
         let mut it = a.tech_iter(SolveTech::Guesses);
-        assert_eq!(if let SolveTech::Guesses(n) = it.next().unwrap(){*n}else{0}, 43);
-        assert_eq!(if let SolveTech::Guesses(n) = it.next().unwrap(){*n}else{0}, 100);
+        assert_eq!(
+            if let SolveTech::Guesses(n) = it.next().unwrap() {
+                *n
+            } else {
+                0
+            },
+            43
+        );
+        assert_eq!(
+            if let SolveTech::Guesses(n) = it.next().unwrap() {
+                *n
+            } else {
+                0
+            },
+            100
+        );
         assert!(it.next().is_none());
 
         let mut it = a.tech_iter(SolveTech::PointingTuples);
         assert!(it.next().is_none());
 
         let mut it = a.tech_iter(SolveTech::HiddenTuples);
-        assert_eq!(if let SolveTech::HiddenTuples(n) = it.next().unwrap(){*n}else{(0,0)}, (2, 8));
+        assert_eq!(
+            if let SolveTech::HiddenTuples(n) = it.next().unwrap() {
+                *n
+            } else {
+                (0, 0)
+            },
+            (2, 8)
+        );
         assert!(it.next().is_none());
     }
 }

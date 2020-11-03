@@ -1,12 +1,12 @@
 use crate::sq_element::flag::*;
+use crate::sq_element::int::IntValue;
 use crate::sq_element::sq_element::*;
 use crate::square::*;
-use crate::sq_element::int::IntValue;
 
 pub trait FlagUpdate {
     type FlagElement;
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>);
-    fn remove_flag (&mut self, other: Self::FlagElement);
+    fn remove_flag(&mut self, other: Self::FlagElement);
     // fn add_flag(&mut self, e: impl SqElement);
 }
 
@@ -23,14 +23,11 @@ where
 {
     type FlagElement = Flag<F2>;
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>) {
-        self.flags = it.fold(Flag::max(), |acc, x| {
-            acc - <Flag<F2>>::from(x.value)
-        });
+        self.flags = it.fold(Flag::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
         self.count = Flag::count_ones(&self.flags);
     }
 
-    fn remove_flag(&mut self, other: Flag<F2>)
-    {
+    fn remove_flag(&mut self, other: Flag<F2>) {
         if self.flags.is_flagged(&other) {
             let similar: Flag<F2> = self.flags & other;
             let num = Flag::count_ones(&similar);
@@ -50,14 +47,11 @@ where
 {
     type FlagElement = Flag<F2>;
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>) {
-        self.flags = it.fold(Flag::max(), |acc, x| {
-            acc - <Flag<F2>>::from(x.value)
-        });
+        self.flags = it.fold(Flag::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
         self.count = Flag::count_ones(&self.flags);
     }
 
     fn remove_flag(&mut self, other: Flag<F2>) {
-
         if self.flags.is_flagged(&other) {
             let num = Flag::count_ones(&(&self.flags & &other));
             self.flags -= other;

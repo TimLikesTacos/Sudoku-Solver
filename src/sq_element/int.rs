@@ -1,11 +1,11 @@
-use crate::sq_element::flag::{FlagElement, Flag};
-use crate::sq_element::*;
-use std::convert::{TryInto, TryFrom};
-use std::fmt::{Debug, Display, Formatter};
-use crate::sq_element::sq_element::{SqElement, OneZero};
+use crate::sq_element::flag::{Flag, FlagElement};
 use crate::sq_element::flag_limits::{IntLimits, ZeroAndOne};
-use std::ops::Add;
+use crate::sq_element::sq_element::{OneZero, SqElement};
+use crate::sq_element::*;
+use std::convert::{TryFrom, TryInto};
 use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::Add;
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct IntValue {
@@ -50,11 +50,11 @@ impl SqElement for IntValue {
     }
 
     fn set<F: SqElement>(&mut self, value: F)
-        where Self: From<F>
+    where
+        Self: From<F>,
     {
         self.value = (IntValue::from(value)).value;
     }
-
 }
 
 // impl <V: SqElement> From<V> for IntValue {
@@ -93,17 +93,13 @@ impl From<i32> for IntValue {
 
 impl From<u8> for IntValue {
     fn from(other: u8) -> Self {
-        IntValue {
-            value: other,
-        }
+        IntValue { value: other }
     }
 }
 
 impl From<&u8> for IntValue {
     fn from(other: &u8) -> Self {
-        IntValue {
-            value: *other,
-        }
+        IntValue { value: *other }
     }
 }
 

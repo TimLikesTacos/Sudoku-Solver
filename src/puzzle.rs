@@ -1,10 +1,10 @@
 use crate::grid::*;
 use crate::solve::brute::BruteForce;
 use crate::solve::solution_report::*;
+use crate::sq_element::flag::Flag;
 use crate::sq_element::*;
 use crate::square::flag_update::FlagUpdate;
 use crate::square::*;
-use crate::sq_element::flag::Flag;
 
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
@@ -14,7 +14,8 @@ pub enum Solutions<G: Square> {
 }
 
 pub struct Puzzle<S: Square>
-    where Grid<S>: NewGrid
+where
+    Grid<S>: NewGrid,
 {
     pub(crate) board: Grid<S>,
     pub(crate) solution: SolutionReport<S>,
@@ -33,7 +34,8 @@ pub trait PuzzleTrait<S: Square>: BruteForce<S> {
 }
 
 impl<S: Square> PuzzleTrait<S> for Puzzle<S>
-    where Grid<S>: NewGrid
+where
+    Grid<S>: NewGrid,
 {
     fn new(input_vec: Vec<u8>) -> Self {
         let g: Grid<S>;

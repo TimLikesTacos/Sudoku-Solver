@@ -5,15 +5,15 @@
 // mod box_iter;
 //mod constants;
 // mod conv_input_output;
-mod sq_element;
-mod square;
-mod grid;
-mod puzzle;
-mod support;
-mod solve;
 mod conv_input_output;
 mod errors;
+mod grid;
 mod human_calcs;
+mod puzzle;
+mod solve;
+mod sq_element;
+mod square;
+mod support;
 
 #[cfg(test)]
 mod library_tests {

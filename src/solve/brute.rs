@@ -12,7 +12,8 @@ pub trait BruteForce<S: Square> {
 }
 
 impl<S: Square> BruteForce<S> for Puzzle<S>
-    where Grid<S>: NewGrid
+where
+    Grid<S>: NewGrid,
 {
     /// Solves the Sudoku puzzle.  Returns a vector of 1-D vectors.  Each 1-D vector represents a
     /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
@@ -213,8 +214,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
-            Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
         assert!(match sol {
@@ -243,8 +243,7 @@ pub mod brute_unit {
             _ => false,
         });
 
-        let res: Puzzle<FlagSquare<IntValue, Flag<u32>>> =
-            Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<FlagSquare<IntValue, Flag<u32>>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 1);
         let sol = res.solution.get_solution();
         assert!(match sol {
@@ -352,8 +351,7 @@ pub mod brute_unit {
         };
         assert_eq!(guesses1, *guess_n_check);
 
-        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
-            Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
         assert_eq!(res.solution.num_solutions(), 2);
         match res.solution.get_solution() {
             Solution::Multi(vec) => {
@@ -450,8 +448,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
-            Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
 
         assert!(res.solution.num_solutions() == 2);
 
@@ -467,8 +464,7 @@ pub mod brute_unit {
             vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
         ];
 
-        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> =
-            Puzzle::new(example.as_input().unwrap());
+        let res: Puzzle<FlagSquare<IntValue, Flag<u16>>> = Puzzle::new(example.as_input().unwrap());
 
         // used https://www.thonky.com/sudoku/solution-count to verify solution count
         assert!(res.solution.num_solutions() == 192);

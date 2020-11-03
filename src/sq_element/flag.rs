@@ -1,11 +1,11 @@
+use crate::sq_element::flag_limits::FlagLimits;
+use crate::sq_element::int::IntValue;
+use crate::sq_element::sq_element::{FlElement, OneZero, SqElement};
 use crate::sq_element::*;
 use std::convert::TryFrom;
-use std::fmt::{Debug, Display, Formatter};
-use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign, Add};
-use crate::sq_element::sq_element::{SqElement, OneZero, FlElement};
-use crate::sq_element::flag_limits::FlagLimits;
-use crate::sq_element::int:: IntValue;
 use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
 
 pub trait FlagElement:
     Default
@@ -32,18 +32,16 @@ pub trait FlagElement:
 impl FlagElement for u16 {}
 impl FlagElement for u32 {}
 
-
 #[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct Flag<F: FlagElement> {
     pub(crate) flag: F,
 }
 
-impl <V: FlagElement> Display for Flag<V> {
+impl<V: FlagElement> Display for Flag<V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.flag)
     }
 }
-
 
 impl<F: FlagElement> OneZero for Flag<F> {
     type Value = F;
@@ -161,11 +159,11 @@ impl<F: FlagElement> SqElement for Flag<F> {
     }
 
     fn set<V: SqElement>(&mut self, value: V)
-        where Self: From<V>
+    where
+        Self: From<V>,
     {
-       self.flag = Self::from(value).flag;
+        self.flag = Self::from(value).flag;
     }
-
 }
 
 impl<F: FlagElement> Add for Flag<F> {
@@ -221,7 +219,7 @@ impl<F: FlagElement> BitOr for Flag<F> {
     type Output = Flag<F>;
     fn bitor(self, rhs: Self) -> Self::Output {
         Flag {
-            flag: self.flag | rhs.flag
+            flag: self.flag | rhs.flag,
         }
     }
 }
@@ -231,7 +229,7 @@ impl<F: FlagElement> BitXor for Flag<F> {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         Flag {
-            flag: self.flag ^ rhs.flag
+            flag: self.flag ^ rhs.flag,
         }
     }
 }
@@ -253,7 +251,7 @@ impl<F: FlagElement> FlElement for Flag<F> {
         }
     }
 
-    fn set_from_value (&mut self, v_slice: &[u8]) {
+    fn set_from_value(&mut self, v_slice: &[u8]) {
         self.flag = v_slice
             .iter()
             .fold(F::ZERO, |acc, x| acc | Self::from(*x).flag);
@@ -277,7 +275,7 @@ mod flag_tests {
     use super::*;
 
     #[test]
-    fn other_froms () {
+    fn other_froms() {
         let mut a: Flag<u16> = Flag::from(0usize);
         a.set(<IntValue>::from(3usize));
         assert_eq!(a.flag, 0b100);
@@ -286,7 +284,6 @@ mod flag_tests {
         let mut b: IntValue = IntValue::from(0);
         b.set(<Flag<u16>>::from(4usize));
         assert_eq!(b.get(), 4);
-
     }
     #[test]
     fn froms() {

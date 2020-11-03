@@ -1,10 +1,10 @@
-use crate::sq_element::*;
 use crate::sq_element::flag::{Flag, FlagElement};
-use crate::sq_element::int::{ IntValue};
-use std::fmt::{Display, Formatter};
-use crate::sq_element::flag_limits::{ZeroAndOne, FlagLimits};
+use crate::sq_element::flag_limits::{FlagLimits, ZeroAndOne};
+use crate::sq_element::int::IntValue;
+use crate::sq_element::*;
 use std::fmt;
-use std::ops::{AddAssign, SubAssign, BitAnd, BitOr};
+use std::fmt::{Display, Formatter};
+use std::ops::{AddAssign, BitAnd, BitOr, SubAssign};
 
 pub trait OneZero {
     type Value: ZeroAndOne;
@@ -12,21 +12,22 @@ pub trait OneZero {
     fn one() -> Self;
 }
 
-
-
-pub trait SqElement: OneZero + Default + PartialEq + PartialOrd + Into<u8> + From<u8> + Copy + Clone {
+pub trait SqElement:
+    OneZero + Default + PartialEq + PartialOrd + Into<u8> + From<u8> + Copy + Clone
+{
     type Item: PartialEq;
     fn inc(&mut self) -> bool;
     fn reset(&mut self);
     fn get(&self) -> Self::Item;
     fn set<V: SqElement>(&mut self, value: V)
-        where Self: From<V>;
+    where
+        Self: From<V>;
 }
 
 pub trait FlElement: SqElement + AddAssign + SubAssign
-    where
-        Self: Sized,
-        Self::FlagItem: FlagLimits + FlagElement,
+where
+    Self: Sized,
+    Self::FlagItem: FlagLimits + FlagElement,
 {
     type FlagItem;
     fn count_ones(flags: &Self) -> u8;
@@ -36,4 +37,3 @@ pub trait FlElement: SqElement + AddAssign + SubAssign
     // fn remove_flag(&mut self, other: Self);
     fn max() -> Self;
 }
-
