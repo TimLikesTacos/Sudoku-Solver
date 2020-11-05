@@ -26,6 +26,7 @@ pub enum SolveTech {
     Guesses(usize),
     SingleCandidates(usize),
     SinglePossibilities(usize),
+    NakedTuple ((usize, usize)),
     LockedCandidates(usize),
     HiddenTuples((usize, usize)),
     PointingTuples((usize, usize)),
@@ -49,6 +50,7 @@ impl Display for SolveTech {
             SolveTech::SingleCandidates(v) => write!(f, "Single Candidates: {}", v),
             SolveTech::SinglePossibilities(v) => write!(f, "Single Possibilities: {}", v),
             SolveTech::LockedCandidates(v) => write!(f, "Locked Candidates: {}", v),
+            SolveTech::NakedTuple((s,v)) => write!(f, "Naked {}-uple: {}", s, v),
             SolveTech::HiddenTuples((s, v)) => write!(f, "Hidden {}-uple: {}", s, v),
             SolveTech::PointingTuples((s, v)) => write!(f, "Pointing {}-uples: {}", s, v),
         }

@@ -3,7 +3,6 @@ use crate::solve::brute::BruteForce;
 use crate::solve::solution_report::*;
 use crate::sq_element::flag::Flag;
 use crate::sq_element::*;
-use crate::square::flag_update::FlagUpdate;
 use crate::square::*;
 
 #[derive(Debug, Clone)]

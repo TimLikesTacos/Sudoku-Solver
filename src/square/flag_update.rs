@@ -23,7 +23,7 @@ where
 {
     type FlagElement = Flag<F2>;
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>) {
-        self.flags = it.fold(Flag::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
+        self.flags = it.fold(FlElement::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
         self.count = Flag::count_ones(&self.flags);
     }
 
@@ -47,7 +47,7 @@ where
 {
     type FlagElement = Flag<F2>;
     fn set_initial<'a>(&'a mut self, it: impl Iterator<Item = &'a Self>) {
-        self.flags = it.fold(Flag::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
+        self.flags = it.fold(FlElement::max(), |acc, x| acc - <Flag<F2>>::from(x.value));
         self.count = Flag::count_ones(&self.flags);
     }
 

@@ -149,7 +149,6 @@ where
 pub mod brute_unit {
     use super::*;
     use crate::conv_input_output::PuzInput;
-    use crate::puzzle::*;
     use crate::sq_element::{Flag, IntValue};
 
     fn get_example() -> Vec<Vec<u8>> {

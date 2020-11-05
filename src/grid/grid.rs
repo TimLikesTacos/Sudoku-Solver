@@ -6,6 +6,7 @@ use crate::support::*;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::{Index, IndexMut};
+use crate::sq_element::flag::FlagElement;
 
 #[derive(Clone, Debug)]
 pub struct Grid<S: Square> {
@@ -69,7 +70,7 @@ impl<S: Square> Display for Grid<S> {
             .map(|(i, v)| {
                 res = write!(f, "{}", v);
                 if i % MAX_NUM == MAX_NUM - 1 {
-                    write!(f, "\n");
+                    write!(f, "\n").unwrap();
                 }
             })
             .all(|_| true);
@@ -243,7 +244,7 @@ where
     {
         let f_remove = F::from(value);
         self[index].set(V::from(value));
-        self[index].remove_flag(F::max());
+        self[index].remove_flag(FlElement::max());
         self.row_iter_mut(index)
             .map(|s| s.remove_flag(f_remove))
             .all(|_| true);

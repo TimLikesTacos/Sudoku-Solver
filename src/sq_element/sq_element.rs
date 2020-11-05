@@ -24,7 +24,7 @@ pub trait SqElement:
         Self: From<V>;
 }
 
-pub trait FlElement: SqElement + AddAssign + SubAssign
+pub trait FlElement: SqElement + AddAssign + SubAssign + Ord
 where
     Self: Sized,
     Self::FlagItem: FlagLimits + FlagElement,

@@ -1,11 +1,12 @@
-use crate::grid::{Grid, MAX_NUM, NUM_CELLS};
+use crate::grid::{Grid, MAX_NUM};
 use crate::solve::solution_report::SolveTech;
 use crate::sq_element::sq_element::{FlElement, SqElement};
 use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, Square};
-use crate::support::{get_cell, index_from_box, index_from_col, index_from_row, start_of_box};
+use crate::support::{index_from_box, index_from_col, index_from_row};
 use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Sub};
+use std::collections::BTreeMap;
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -24,7 +25,7 @@ pub trait BasicHumanMethods {
     /// checking for quintuples is the same as quadruples.  Generically, it will be `n/2` with `n` being the MAX_NUM value.
     /// This method does not fill in cells, only eliminates possibilities which can support other methods like
     /// single_candidate or single_possibility.
-    fn naked_tuple(&mut self) -> SolveTech;
+    fn naked_tuple(&mut self) -> Vec<SolveTech>;
 
     /// A hidden pair is similar to a naked pair, however it contains other possibilities.
     /// For example, a cell has the possibility of either `2`, `4`, or '7'. Another cell has a possiblity of '2', '4', '6'.  The other cells in the row
@@ -32,7 +33,7 @@ pub trait BasicHumanMethods {
     /// possibilities in these cells can be removed, along with '2' and '4' in the remaining cells.
     /// This method does not fill in cells, only eliminates possibilities which can support other methods like
     /// single_candidate or single_possibility.
-    fn hidden_tuple(&mut self) -> SolveTech;
+    fn hidden_tuple(&mut self) -> &[SolveTech];
     // fn locked_candidates_pointing(&mut self, fill: bool) -> Vec<(usize, Element)> ;
     // fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)>;
 }
@@ -44,7 +45,8 @@ impl<
             + BitAnd<Output = F>
             + BitOr<Output = F>
             + Sub<Output = F>
-            + BitXor<Output = F>,
+            + BitXor<Output = F>
+            + Ord,
     > BasicHumanMethods for Grid<FlagSquare<V, F>>
 where
     FlagSquare<V, F>: FlagUpdate<FlagElement = F>,
@@ -80,7 +82,7 @@ where
         SolveTech::SingleCandidates(amount)
     }
     fn single_possibility(&mut self) -> SolveTech {
-        /**
+        /*
          * Ones: Bitwise OR, starting from all 0.  If it has been used at least once, it be 1,
          * Multis: Selfassign bitwise or with (Ones(n-1) bitwiseAND current)
          * Ones:  0000
@@ -200,12 +202,90 @@ where
         }
         SolveTech::SinglePossibilities(cands)
     }
-    fn naked_tuple(&mut self) -> SolveTech {
-        unimplemented!()
+
+    /// Naked tuples are squares in a rol/col/box that have the same identical possibilities.
+    /// For example, square#1 can be either a 3 or 4.  Another square in that row can only be
+    /// a 3 or 4.  This means that all other squares in that row CANNOT be 3 or 4.  It doesn't
+    /// solve the square, but it eliminates possibilities in other squares that then can be solved
+    /// easier with other techniques.
+    fn naked_tuple<'a>(&'a mut self) -> Vec<SolveTech> {
+
+        fn get_tuples<
+            'a,
+            VT: SqElement + From<FT>,
+            FT: FlElement + From<VT> + Ord,
+            I: Iterator<Item = &'a FlagSquare<VT, FT>>,
+        >(
+            grid: &'a mut Grid<FlagSquare<VT, FT>>,
+            iter: fn(&'a Grid<FlagSquare<VT, FT>>, usize) -> I,
+            index_from: fn(usize, usize) -> usize,
+            step: usize,
+        ) -> BTreeMap<FT, usize>
+            where
+                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        {
+            // This map is used to track the amount of times a combo comes up.
+            // The square's flags are the key, the amount of times is the value.
+            let mut map: BTreeMap<FT, usize> = BTreeMap::new();
+            for s in iter(grid, index_from(step, 0)) {
+                // map.insert returns None if nothing existed before, else returns previous value.
+                // This will take the old value, if present, and increment it
+                if let Some(v) = map.insert(s.flags, 1) {
+                    map.insert(s.flags, v+1);
+                }
+            }
+            map
+        }
+
+        fn update_grid<VT: SqElement + From<FT>, FT: FlElement + From<VT>>(
+            grid: &mut Grid<FlagSquare<VT, FT>>,
+            tuples: &BTreeMap<F, usize>,
+            iter: fn(&'a mut Grid<FlagSquare<VT, FT>>, usize) -> I,
+            index_from: fn (usize, usize) -> usize,
+            step: usize,
+        ) -> Vec<SolveTech>
+            where
+                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        {
+            let mut results= Vec::new();
+            //keep tuples that have 2 or more matches.
+            let good_tuples: BTreeMap<F, usize> = tuples.iter().filter(|t| t.1 > &1).collect();
+            // Early out
+            if good_tuples.len() == 0 {
+                return results;
+            }
+            for mut s in iter(grid, index_from(step, 0)){
+                if !good_tuples.contains(s.flags) {
+                    for t in good_tuples {
+                        s.flags = s.flags - t.0;
+                    }
+                }
+            }
+            // Handle the results
+            let t_count: Vec<usize> = good_tuples.iter().map(|t| t.1).collect();
+            for v in t_count {
+                results.push(SolveTech::NakedTuple(v))
+            }
+            results
+        }
+
+
+
+        let mut tuples: Vec<SolveTech> = Vec::new();
+        for i in 0..MAX_NUM {
+
+            let mut tuple_map: BTreeMap<F, usize> = get_tuples(self, Self::row_iter, index_from_row, i);
+            tuples.append(update_grid(self, &tuple_map, Self::row_iter_mut, index_from_row, i));
+
+
+        }
+        tuples
     }
 
-    fn hidden_tuple(&mut self) -> SolveTech {
-        unimplemented!()
+    fn hidden_tuple<'a>(&'a mut self) -> &'a[SolveTech] {
+
+        unimplemented!();
+
     }
 
     fn single_possibility_slower(&mut self) -> SolveTech {
@@ -272,7 +352,7 @@ where
 #[cfg(test)]
 mod human_method_tests {
     use super::*;
-    use crate::conv_input_output::{PuzInput, PuzOutput};
+    use crate::conv_input_output::{PuzInput};
     use crate::puzzle::{Puzzle, PuzzleTrait};
     use crate::solve::brute::BruteForce;
     use crate::solve::solution_report::Solution;

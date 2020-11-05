@@ -6,6 +6,7 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
+use std::cmp::Ordering;
 
 pub trait FlagElement:
     Default
@@ -26,13 +27,15 @@ pub trait FlagElement:
     + Shl<Output = Self>
     + BitOr<Output = Self>
     + BitXor<Output = Self>
+    + Eq
+    + Ord
 {
 }
 
 impl FlagElement for u16 {}
 impl FlagElement for u32 {}
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
+#[derive(Copy, Clone, Default, Debug, Eq, PartialEq, PartialOrd)]
 pub struct Flag<F: FlagElement> {
     pub(crate) flag: F,
 }
@@ -233,6 +236,16 @@ impl<F: FlagElement> BitXor for Flag<F> {
         }
     }
 }
+
+impl <F: FlagElement> Ord for Flag<F> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.flag.cmp(&other.flag)
+    }
+}
+
+// impl <F:FlagElement> Eq for Flag<F> {
+//
+// }
 impl<F: FlagElement> FlElement for Flag<F> {
     type FlagItem = F;
     fn count_ones(flags: &Self) -> u8 {
