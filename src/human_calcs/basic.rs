@@ -284,7 +284,71 @@ where
 
     fn hidden_tuple<'a>(&'a mut self) -> &'a[SolveTech] {
 
-        unimplemented!();
+        /* 234  27 47 358
+         * 2 4 7 5 8 3
+         *
+         *go through each row /col /box
+         * get the flags
+         *
+         */
+
+
+        fn counter (arr: &mut [u8], flag: &F) {
+            let mut f = *flag;
+            let mut ind = arr.len() - 1;
+            while f > 0 && ind >= 0{
+                if f & 1 == 1 {
+                    arr[ind] = arr[ind] + 1;
+                }
+                f = f >> 1;
+                ind -= 1;
+            }
+        }
+
+        fn get_tuples<
+            'a,
+            VT: SqElement + From<FT>,
+            FT: FlElement + From<VT> + Ord,
+            I: Iterator<Item = &'a FlagSquare<VT, FT>>,
+        >(
+            grid: &'a mut Grid<FlagSquare<VT, FT>>,
+            iter: fn(&'a Grid<FlagSquare<VT, FT>>, usize) -> I,
+            index_from: fn(usize, usize) -> usize,
+            step: usize,
+        ) -> Vec<(u8, usize)>
+            where
+                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        {
+            /* This vector is used to track the tuple size and the index associated with it */
+            let mut tups: Vec<(u8, usize)> = Vec::new();
+            const MAX_TUPLE: usize = MAX_NUM / 2;
+            let mut count: [u8; MAX_NUM] = [0; MAX_NUM];
+            // Collect the counts for occurances of each flagged value
+            for s in iter(grid, index_from(step, 0)) {
+                counter(&count, s.flag)
+            }
+
+            // Find the tuples.  If a value appears `n` times, it needs `n` different squares to be a tuple
+            for t in 2..=MAX_TUPLE {
+                let mut indicies: Vec<usize> = Vec::new();
+                let mut res: Vec<(u8, usize)> = count.iter()
+                    .enumerate()
+                    .filter(|(_,x)| x != 0 && x == t)
+                    .map(|(a, b)| (b, a))
+                    .collect();
+                // If there are `n` squares that have a `n` values, add to tuple
+
+
+                if res.len() == t {
+                    tups.append(&mut res);
+                }
+
+            }
+            tups
+        }
+
+
+
 
     }
 
