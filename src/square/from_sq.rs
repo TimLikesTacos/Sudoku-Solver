@@ -67,7 +67,7 @@ impl<F: FlagElement, Ft: FlElement + From<u8>> From<u8> for FlagSquare<Flag<F>, 
         FlagSquare {
             value: Flag::from(v),
             fixed: if v > 0 { true } else { false },
-            flags: Ft::from(0),
+            flags: Ft::from(0u8),
             count: 0,
         }
     }

@@ -2,6 +2,7 @@
 /// squares that contain flag elements, such as FlagSquare.  Therefore, implmentation of these
 /// is only done for FlagSquare<Value, Flags> and not SimpleSquare<Value>
 pub mod basic;
+mod tuple_ctr;
 // use crate::*;
 // use std::collections::HashMap;
 // use crate::constants::*;

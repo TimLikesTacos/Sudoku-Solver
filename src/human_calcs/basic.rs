@@ -7,6 +7,7 @@ use crate::support::{index_from_box, index_from_col, index_from_row};
 use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Sub};
 use std::collections::BTreeMap;
+use crate::human_calcs::tuple_ctr::*;
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -237,9 +238,9 @@ where
             map
         }
 
-        fn update_grid<VT: SqElement + From<FT>, FT: FlElement + From<VT>>(
+        fn update_grid<'a, VT: SqElement + From<FT>, FT: FlElement + From<VT>, I: Iterator<Item=&'a mut  FlagSquare<VT, FT>>>(
             grid: &mut Grid<FlagSquare<VT, FT>>,
-            tuples: &BTreeMap<F, usize>,
+            tuples: &BTreeMap<FT, usize>,
             iter: fn(&'a mut Grid<FlagSquare<VT, FT>>, usize) -> I,
             index_from: fn (usize, usize) -> usize,
             step: usize,
@@ -247,26 +248,26 @@ where
             where
                 FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
-            let mut results= Vec::new();
-            //keep tuples that have 2 or more matches.
-            let good_tuples: BTreeMap<F, usize> = tuples.iter().filter(|t| t.1 > &1).collect();
-            // Early out
-            if good_tuples.len() == 0 {
-                return results;
-            }
-            for mut s in iter(grid, index_from(step, 0)){
-                if !good_tuples.contains(s.flags) {
-                    for t in good_tuples {
-                        s.flags = s.flags - t.0;
-                    }
-                }
-            }
-            // Handle the results
-            let t_count: Vec<usize> = good_tuples.iter().map(|t| t.1).collect();
-            for v in t_count {
-                results.push(SolveTech::NakedTuple(v))
-            }
-            results
+             let mut results= Vec::new();
+            // //keep tuples that have 2 or more matches.
+            // let good_tuples: BTreeMap<FT, usize> = tuples.iter().filter(|t| t.1 > &1).collect();
+            // // Early out
+            // if good_tuples.len() == 0 {
+            //     return results;
+            // }
+            // for mut s in iter(grid, index_from(step, 0)){
+            //     if !good_tuples.contains(s.flags) {
+            //         for t in good_tuples {
+            //             s.flags = s.flags - t.0;
+            //         }
+            //     }
+            // }
+            // // Handle the results
+            // let t_count: Vec<usize> = good_tuples.iter().map(|t| t.1).collect();
+            // for v in t_count {
+            //     results.push(SolveTech::NakedTuple(v))
+            // }
+             results
         }
 
 
@@ -275,7 +276,7 @@ where
         for i in 0..MAX_NUM {
 
             let mut tuple_map: BTreeMap<F, usize> = get_tuples(self, Self::row_iter, index_from_row, i);
-            tuples.append(update_grid(self, &tuple_map, Self::row_iter_mut, index_from_row, i));
+            tuples.append(&mut update_grid(self, &tuple_map, Self::row_iter_mut, index_from_row, i));
 
 
         }
@@ -283,6 +284,17 @@ where
     }
 
     fn hidden_tuple<'a>(&'a mut self) -> &'a[SolveTech] {
+        // fn counter (arr: &mut [u8], flag: &F) {
+        //     let mut f = *flag;
+        //     let mut ind = arr.len() - 1;
+        //     while f > 0 && ind >= 0{
+        //         if f & 1 == 1 {
+        //             arr[ind] = arr[ind] + 1;
+        //         }
+        //         f = f >> 1;
+        //         ind -= 1;
+        //     }
+        // }
 
         /* 234  27 47 358
          * 2 4 7 5 8 3
@@ -293,17 +305,6 @@ where
          */
 
 
-        fn counter (arr: &mut [u8], flag: &F) {
-            let mut f = *flag;
-            let mut ind = arr.len() - 1;
-            while f > 0 && ind >= 0{
-                if f & 1 == 1 {
-                    arr[ind] = arr[ind] + 1;
-                }
-                f = f >> 1;
-                ind -= 1;
-            }
-        }
 
         fn get_tuples<
             'a,
@@ -319,35 +320,50 @@ where
             where
                 FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
+
+            let mut counter: TupleCtr<FT> = TupleCtr::new();
             /* This vector is used to track the tuple size and the index associated with it */
             let mut tups: Vec<(u8, usize)> = Vec::new();
-            const MAX_TUPLE: usize = MAX_NUM / 2;
-            let mut count: [u8; MAX_NUM] = [0; MAX_NUM];
+            //const MAX_TUPLE: usize = MAX_NUM / 2;
+            // let mut count: [u8; MAX_NUM] = [0; MAX_NUM];
             // Collect the counts for occurances of each flagged value
-            for s in iter(grid, index_from(step, 0)) {
-                counter(&count, s.flag)
+            for (i, s) in iter(grid, index_from(step, 0)).enumerate() {
+                counter.insert(FT::from(i), s.flags);
             }
 
-            // Find the tuples.  If a value appears `n` times, it needs `n` different squares to be a tuple
-            for t in 2..=MAX_TUPLE {
-                let mut indicies: Vec<usize> = Vec::new();
-                let mut res: Vec<(u8, usize)> = count.iter()
-                    .enumerate()
-                    .filter(|(_,x)| x != 0 && x == t)
-                    .map(|(a, b)| (b, a))
-                    .collect();
-                // If there are `n` squares that have a `n` values, add to tuple
-
-
-                if res.len() == t {
-                    tups.append(&mut res);
+            for uple in 2..(MAX_NUM / 2) {
+                for i in 0..MAX_NUM {
+                    for j in (i+1)..MAX_NUM {
+                        let merged = counter[i] & counter[j];
+                    }
                 }
-
             }
+
+            // O(n^2/2)
+            for i in 0..MAX_NUM {
+                let f = &counter.array[i];
+            }
+            //
+            // // Find the tuples.  If a value appears `n` times, it needs `n` different squares to be a tuple
+            // for t in 2..=MAX_TUPLE {
+            //     let mut indicies: Vec<usize> = Vec::new();
+            //     let mut res: Vec<(u8, usize)> = count.iter()
+            //         .enumerate()
+            //         .filter(|(_,x)| x != 0 && x == t)
+            //         .map(|(a, b)| (b, a))
+            //         .collect();
+            //     // If there are `n` squares that have a `n` values, add to tuple
+            //
+            //
+            //     if res.len() == t {
+            //         tups.append(&mut res);
+            //     }
+            //
+            // }
             tups
         }
 
-
+        &[SolveTech::NakedTuple((0,0))]
 
 
     }
