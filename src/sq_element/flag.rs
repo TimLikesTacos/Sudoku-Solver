@@ -2,11 +2,11 @@ use crate::sq_element::flag_limits::FlagLimits;
 use crate::sq_element::int::IntValue;
 use crate::sq_element::sq_element::{FlElement, OneZero, SqElement};
 use crate::sq_element::*;
+use std::cmp::Ordering;
 use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Add, AddAssign, BitAnd, BitOr, BitXor, Shl, Shr, Sub, SubAssign};
-use std::cmp::Ordering;
 
 pub trait FlagElement:
     Default
@@ -237,17 +237,17 @@ impl<F: FlagElement> BitXor for Flag<F> {
     }
 }
 
-impl <F: FlagElement> Shl for Flag<F> {
+impl<F: FlagElement> Shl for Flag<F> {
     type Output = Flag<F>;
 
     fn shl(self, rhs: Self) -> Self::Output {
         Flag {
-            flag: self.flag << rhs.flag
+            flag: self.flag << rhs.flag,
         }
     }
 }
 
-impl <F: FlagElement> Ord for Flag<F> {
+impl<F: FlagElement> Ord for Flag<F> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.flag.cmp(&other.flag)
     }

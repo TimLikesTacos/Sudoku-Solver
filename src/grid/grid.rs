@@ -1,4 +1,5 @@
 use crate::grid::*;
+use crate::sq_element::flag::FlagElement;
 use crate::sq_element::sq_element::{FlElement, SqElement};
 use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, SimpleSquare, Square};
@@ -6,7 +7,6 @@ use crate::support::*;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::{Index, IndexMut};
-use crate::sq_element::flag::FlagElement;
 
 #[derive(Clone, Debug)]
 pub struct Grid<S: Square> {

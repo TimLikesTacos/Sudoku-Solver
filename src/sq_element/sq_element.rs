@@ -3,8 +3,8 @@ use crate::sq_element::flag_limits::{FlagLimits, ZeroAndOne};
 use crate::sq_element::int::IntValue;
 use crate::sq_element::*;
 use std::fmt;
-use std::fmt::{Display, Formatter};
-use std::ops::{AddAssign, BitAnd, BitOr, SubAssign, Sub, Shl, BitXor};
+use std::fmt::{Display, Formatter, Debug};
+use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Sub, SubAssign};
 
 pub trait OneZero {
     type Value: ZeroAndOne;
@@ -24,8 +24,18 @@ pub trait SqElement:
         Self: From<V>;
 }
 
-pub trait FlElement: SqElement + AddAssign + SubAssign + Ord + BitAnd<Output = Self>
-    + Sub<Output = Self> + Shl<Output = Self> + From<usize> + BitXor<Output = Self> + BitOr<Output = Self>
+pub trait FlElement:
+    SqElement
+    + AddAssign
+    + SubAssign
+    + Ord
+    + BitAnd<Output = Self>
+    + Sub<Output = Self>
+    + Shl<Output = Self>
+    + From<usize>
+    + BitXor<Output = Self>
+    + BitOr<Output = Self>
+    + Debug
 where
     Self: Sized,
     Self::FlagItem: FlagLimits + FlagElement,

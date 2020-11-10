@@ -1,13 +1,13 @@
 use crate::grid::{Grid, MAX_NUM};
+use crate::human_calcs::tuple_ctr::*;
 use crate::solve::solution_report::SolveTech;
 use crate::sq_element::sq_element::{FlElement, SqElement};
 use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, Square};
 use crate::support::{index_from_box, index_from_col, index_from_row};
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::ops::{BitAnd, BitOr, BitXor, Sub};
-use std::collections::BTreeMap;
-use crate::human_calcs::tuple_ctr::*;
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -210,7 +210,6 @@ where
     /// solve the square, but it eliminates possibilities in other squares that then can be solved
     /// easier with other techniques.
     fn naked_tuple<'a>(&'a mut self) -> Vec<SolveTech> {
-
         fn get_tuples<
             'a,
             VT: SqElement + From<FT>,
@@ -222,8 +221,8 @@ where
             index_from: fn(usize, usize) -> usize,
             step: usize,
         ) -> BTreeMap<FT, usize>
-            where
-                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        where
+            FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
             // This map is used to track the amount of times a combo comes up.
             // The square's flags are the key, the amount of times is the value.
@@ -232,23 +231,28 @@ where
                 // map.insert returns None if nothing existed before, else returns previous value.
                 // This will take the old value, if present, and increment it
                 if let Some(v) = map.insert(s.flags, 1) {
-                    map.insert(s.flags, v+1);
+                    map.insert(s.flags, v + 1);
                 }
             }
             map
         }
 
-        fn update_grid<'a, VT: SqElement + From<FT>, FT: FlElement + From<VT>, I: Iterator<Item=&'a mut  FlagSquare<VT, FT>>>(
+        fn update_grid<
+            'a,
+            VT: SqElement + From<FT>,
+            FT: FlElement + From<VT>,
+            I: Iterator<Item = &'a mut FlagSquare<VT, FT>>,
+        >(
             grid: &mut Grid<FlagSquare<VT, FT>>,
             tuples: &BTreeMap<FT, usize>,
             iter: fn(&'a mut Grid<FlagSquare<VT, FT>>, usize) -> I,
-            index_from: fn (usize, usize) -> usize,
+            index_from: fn(usize, usize) -> usize,
             step: usize,
         ) -> Vec<SolveTech>
-            where
-                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        where
+            FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
-             let mut results= Vec::new();
+            let mut results = Vec::new();
             // //keep tuples that have 2 or more matches.
             // let good_tuples: BTreeMap<FT, usize> = tuples.iter().filter(|t| t.1 > &1).collect();
             // // Early out
@@ -267,23 +271,25 @@ where
             // for v in t_count {
             //     results.push(SolveTech::NakedTuple(v))
             // }
-             results
+            results
         }
-
-
 
         let mut tuples: Vec<SolveTech> = Vec::new();
         for i in 0..MAX_NUM {
-
-            let mut tuple_map: BTreeMap<F, usize> = get_tuples(self, Self::row_iter, index_from_row, i);
-            tuples.append(&mut update_grid(self, &tuple_map, Self::row_iter_mut, index_from_row, i));
-
-
+            let mut tuple_map: BTreeMap<F, usize> =
+                get_tuples(self, Self::row_iter, index_from_row, i);
+            tuples.append(&mut update_grid(
+                self,
+                &tuple_map,
+                Self::row_iter_mut,
+                index_from_row,
+                i,
+            ));
         }
         tuples
     }
 
-    fn hidden_tuple<'a>(&'a mut self) -> &'a[SolveTech] {
+    fn hidden_tuple<'a>(&'a mut self) -> &'a [SolveTech] {
         // fn counter (arr: &mut [u8], flag: &F) {
         //     let mut f = *flag;
         //     let mut ind = arr.len() - 1;
@@ -304,8 +310,6 @@ where
          *
          */
 
-
-
         fn get_tuples<
             'a,
             VT: SqElement + From<FT>,
@@ -317,10 +321,9 @@ where
             index_from: fn(usize, usize) -> usize,
             step: usize,
         ) -> Vec<(u8, usize)>
-            where
-                FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        where
+            FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
-
             let mut counter: TupleCtr<FT> = TupleCtr::new();
             /* This vector is used to track the tuple size and the index associated with it */
             let mut tups: Vec<(u8, usize)> = Vec::new();
@@ -331,18 +334,18 @@ where
                 counter.insert(FT::from(i), s.flags);
             }
 
-            for uple in 2..(MAX_NUM / 2) {
-                for i in 0..MAX_NUM {
-                    for j in (i+1)..MAX_NUM {
-                        let merged = counter[i] & counter[j];
-                    }
-                }
-            }
-
-            // O(n^2/2)
-            for i in 0..MAX_NUM {
-                let f = &counter.array[i];
-            }
+            // for uple in 2..(MAX_NUM / 2) {
+            //     for i in 0..MAX_NUM {
+            //         for j in (i + 1)..MAX_NUM {
+            //             let merged = counter[i] & counter[j];
+            //         }
+            //     }
+            // }
+            //
+            // // O(n^2/2)
+            // for i in 0..MAX_NUM {
+            //     let f = &counter.array[i];
+            // }
             //
             // // Find the tuples.  If a value appears `n` times, it needs `n` different squares to be a tuple
             // for t in 2..=MAX_TUPLE {
@@ -363,9 +366,7 @@ where
             tups
         }
 
-        &[SolveTech::NakedTuple((0,0))]
-
-
+        &[SolveTech::NakedTuple((0, 0))]
     }
 
     fn single_possibility_slower(&mut self) -> SolveTech {
@@ -432,7 +433,7 @@ where
 #[cfg(test)]
 mod human_method_tests {
     use super::*;
-    use crate::conv_input_output::{PuzInput};
+    use crate::conv_input_output::PuzInput;
     use crate::puzzle::{Puzzle, PuzzleTrait};
     use crate::solve::brute::BruteForce;
     use crate::solve::solution_report::Solution;
