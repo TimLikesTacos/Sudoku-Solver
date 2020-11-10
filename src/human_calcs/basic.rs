@@ -5,9 +5,11 @@ use crate::sq_element::sq_element::{FlElement, SqElement};
 use crate::square::flag_update::FlagUpdate;
 use crate::square::{FlagSquare, Square};
 use crate::support::{index_from_box, index_from_col, index_from_row};
+use std::borrow::Borrow;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::fmt::Debug;
-use std::ops::{BitAnd, BitOr, BitXor, Sub};
+use std::ops::{BitAnd, BitOr, BitXor, Shr, Sub};
 
 pub trait BasicHumanMethods {
     /// Finds cells that have only one possible value, fills it in, and removes pencil marks for
@@ -34,7 +36,7 @@ pub trait BasicHumanMethods {
     /// possibilities in these cells can be removed, along with '2' and '4' in the remaining cells.
     /// This method does not fill in cells, only eliminates possibilities which can support other methods like
     /// single_candidate or single_possibility.
-    fn hidden_tuple(&mut self) -> &[SolveTech];
+    fn hidden_tuple(&mut self) -> Vec<SolveTech>;
     // fn locked_candidates_pointing(&mut self, fill: bool) -> Vec<(usize, Element)> ;
     // fn locked_candidates_claiming(&mut self, fill: bool) -> Vec<(usize, Element)>;
 }
@@ -47,7 +49,8 @@ impl<
             + BitOr<Output = F>
             + Sub<Output = F>
             + BitXor<Output = F>
-            + Ord,
+            + Ord
+            + Shr<Output = F>,
     > BasicHumanMethods for Grid<FlagSquare<V, F>>
 where
     FlagSquare<V, F>: FlagUpdate<FlagElement = F>,
@@ -289,84 +292,96 @@ where
         tuples
     }
 
-    fn hidden_tuple<'a>(&'a mut self) -> &'a [SolveTech] {
-        // fn counter (arr: &mut [u8], flag: &F) {
-        //     let mut f = *flag;
-        //     let mut ind = arr.len() - 1;
-        //     while f > 0 && ind >= 0{
-        //         if f & 1 == 1 {
-        //             arr[ind] = arr[ind] + 1;
-        //         }
-        //         f = f >> 1;
-        //         ind -= 1;
-        //     }
-        // }
-
-        /* 234  27 47 358
-         * 2 4 7 5 8 3
-         *
-         *go through each row /col /box
-         * get the flags
-         *
-         */
-
+    fn hidden_tuple<'a>(&'a mut self) -> Vec<SolveTech> {
         fn get_tuples<
             'a,
-            VT: SqElement + From<FT>,
-            FT: FlElement + From<VT> + Ord,
-            I: Iterator<Item = &'a FlagSquare<VT, FT>>,
+            'b,
+            VT: 'b + SqElement + From<FT>,
+            FT: 'b + FlElement + From<VT> + Ord + Shr<Output = FT>,
+            I: Iterator<Item = &'b FlagSquare<VT, FT>>,
         >(
-            grid: &'a mut Grid<FlagSquare<VT, FT>>,
+            grid: &'a Grid<FlagSquare<VT, FT>>,
             iter: fn(&'a Grid<FlagSquare<VT, FT>>, usize) -> I,
             index_from: fn(usize, usize) -> usize,
             step: usize,
-        ) -> Vec<(u8, usize)>
+        ) -> Vec<(usize, usize, FT)>
         where
             FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
-            let mut counter: TupleCtr<FT> = TupleCtr::new();
             /* This vector is used to track the tuple size and the index associated with it */
-            let mut tups: Vec<(u8, usize)> = Vec::new();
+            let mut tups: Vec<SolveTech> = Vec::new();
             //const MAX_TUPLE: usize = MAX_NUM / 2;
             // let mut count: [u8; MAX_NUM] = [0; MAX_NUM];
             // Collect the counts for occurances of each flagged value
-            for (i, s) in iter(grid, index_from(step, 0)).enumerate() {
-                counter.insert(FT::from(i), s.flags);
+            let mut v_indicies: Vec<(usize, usize, FT)> = Vec::new();
+            let mut counter: TupleCtr<FT> = TupleCtr::new();
+            for (i, &s) in iter(grid, index_from(step, 0)).enumerate() {
+                counter.insert(FT::from(i + 1), s.flags);
             }
 
-            // for uple in 2..(MAX_NUM / 2) {
-            //     for i in 0..MAX_NUM {
-            //         for j in (i + 1)..MAX_NUM {
-            //             let merged = counter[i] & counter[j];
-            //         }
-            //     }
-            // }
-            //
-            // // O(n^2/2)
-            // for i in 0..MAX_NUM {
-            //     let f = &counter.array[i];
-            // }
-            //
-            // // Find the tuples.  If a value appears `n` times, it needs `n` different squares to be a tuple
-            // for t in 2..=MAX_TUPLE {
-            //     let mut indicies: Vec<usize> = Vec::new();
-            //     let mut res: Vec<(u8, usize)> = count.iter()
-            //         .enumerate()
-            //         .filter(|(_,x)| x != 0 && x == t)
-            //         .map(|(a, b)| (b, a))
-            //         .collect();
-            //     // If there are `n` squares that have a `n` values, add to tuple
-            //
-            //
-            //     if res.len() == t {
-            //         tups.append(&mut res);
-            //     }
-            //
-            // }
+            //let mut results: Vec<Ctr<FT>> = Vec::new();
+            for uple in 1..(MAX_NUM / 2) {
+                let results = counter.combo(u8::try_from(uple).unwrap());
+                // Unravel results:
+                for r in results {
+                    assert_eq!(FT::count_ones(&r.flag), FT::count_ones(&r.indicies));
+                    let mut ind = r.indicies;
+                    let mut count = 0;
+                    let one = FT::one();
+                    while ind > FT::zero() {
+                        if ind & one == one {
+                            v_indicies.push((uple, count, r.flag));
+                        }
+                        ind = ind >> one;
+                        count += 1;
+                    }
+                }
+            }
+            v_indicies
+        }
+
+        fn update_grid<'a, 'b, VT: 'b + SqElement + From<FT>, FT: 'b + FlElement + From<VT> + Ord>(
+            grid: &'a mut Grid<FlagSquare<VT, FT>>,
+            indicies: &Vec<(usize, usize, FT)>,
+            index_from: fn(usize, usize) -> usize,
+            step: usize,
+        ) -> Vec<SolveTech>
+        where
+            FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        {
+            let mut tups: Vec<SolveTech> = Vec::new();
+            // replace flags at the indicies with the tuple
+            for (tup, i, flag) in indicies {
+                let index = index_from(step, *i);
+                grid.grid[index].flags = *flag;
+                tups.push(SolveTech::HiddenTuples((*tup, index)));
+            }
             tups
         }
 
-        &[SolveTech::NakedTuple((0, 0))]
+        let mut ret: Vec<SolveTech> = Vec::new();
+        for i in 0..MAX_NUM {
+            ret.append(&mut update_grid(
+                self,
+                &get_tuples(self, Self::row_iter, index_from_row, i),
+                index_from_row,
+                i,
+            ));
+            ret.append(&mut update_grid(
+                self,
+                &get_tuples(self, Self::col_iter, index_from_col, i),
+                index_from_col,
+                i,
+            ));
+            ret.append(&mut update_grid(
+                self,
+                &get_tuples(self, Self::box_iter, index_from_box, i),
+                index_from_box,
+                i,
+            ));
+        }
+
+        ret
     }
 
     fn single_possibility_slower(&mut self) -> SolveTech {

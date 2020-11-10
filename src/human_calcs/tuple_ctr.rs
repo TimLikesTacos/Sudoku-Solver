@@ -2,6 +2,9 @@ use crate::grid::MAX_NUM;
 use crate::sq_element::sq_element::FlElement;
 use std::ops::{BitAnd, BitOr, BitXor, Sub};
 
+/// Struct used to count occurances of a value.  A value is stored in 'flag', the the
+/// indicies are stored in 'indicies', as a FlagElement type.  NOTE:: when inserting indicies,
+/// they must be 'starting at 1' based, since 0 would be indiscernible from empty.
 #[derive(Clone, Debug)]
 pub(crate) struct Ctr<FT: FlElement> {
     pub(crate) flag: FT,
@@ -28,7 +31,7 @@ impl<FT: FlElement> Ctr<FT> {
     }
 }
 
-impl <FT: FlElement> Sub for Ctr<FT> {
+impl<FT: FlElement> Sub for Ctr<FT> {
     type Output = Ctr<FT>;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -36,7 +39,7 @@ impl <FT: FlElement> Sub for Ctr<FT> {
         Ctr {
             flag: self.flag,
             indicies: diff,
-            ind_count: FT::count_ones(&diff)
+            ind_count: FT::count_ones(&diff),
         }
     }
 }
@@ -87,6 +90,10 @@ impl<FT: FlElement> PartialEq for Ctr<FT> {
         self.flag == other.flag && self.indicies == other.indicies
     }
 }
+
+/// Struct used to count values and occurances.  Contains a vector of size MAX_NUM (9 for
+/// a typical 9x9 sudoku puzzle. The vector stores Ctr types.  NOTE:: Ctr stores indicies, these
+/// must be begin at 1 based, since a index of 0 is indiscernible from empty.
 #[derive(Clone, Debug)]
 pub(crate) struct TupleCtr<FT: FlElement> {
     pub(crate) array: Vec<Ctr<FT>>,
@@ -107,6 +114,12 @@ impl<FT: FlElement> TupleCtr<FT> {
     }
 
     pub fn insert(&mut self, index: FT, flag: FT) {
+        assert_ne!(
+            index,
+            FT::zero(),
+            "Inserting indicies should start at 1, not 0.  0 is \
+        indiscernible from empty"
+        );
         let zero = FT::zero();
         for i in 0..self.array.len() {
             if self.array[i].flag & flag > zero {
@@ -121,11 +134,19 @@ impl<FT: FlElement> TupleCtr<FT> {
     /// In a 9x9 puzzle, the largest tuple you should look for is where n==4, therefore
     /// it is not that large, plus skipping values with zero (already solved squares) will
     /// increase efficiency.
-    pub fn combo(&self, tuple_size: u8) -> Vec<Ctr<FT>>{
+    pub fn combo(&self, tuple_size: u8) -> Vec<Ctr<FT>> {
         let mut results: Vec<Ctr<FT>> = Vec::new();
-        self.combo_rec(&mut results, Ctr::new(FT::zero()), Ctr::new(FT::zero()), 0, 0, tuple_size);
+        self.combo_rec(
+            &mut results,
+            Ctr::new(FT::zero()),
+            Ctr::new(FT::zero()),
+            0,
+            0,
+            tuple_size,
+        );
         results
     }
+    // Recursive function to get tuples
     fn combo_rec(
         &self,
         tups: &mut Vec<Ctr<FT>>,
@@ -147,7 +168,7 @@ impl<FT: FlElement> TupleCtr<FT> {
             // dbg!(&diff);
             // diff will be equal to lhs_r if all the elements in lhs are not in rhs.
             //dbg!(&diff, &lhs.indicies, &r_rhs.indicies);
-            if  diff.ind_count == tuple_size{
+            if diff.ind_count == tuple_size {
                 tups.push(diff);
             }
             return;
@@ -158,7 +179,6 @@ impl<FT: FlElement> TupleCtr<FT> {
         // Make lhs the bitwise AND of what was passed in and the value at the cursor.
         let added_to_left = self.array[current_ind].clone() | lhs.clone();
         let added_to_right = self.array[current_ind].clone() | rhs.clone();
-
 
         //Increment current_ind
         let mut ind = current_ind;
@@ -178,12 +198,12 @@ impl<FT: FlElement> TupleCtr<FT> {
         // continue with building tuple
         // Add to left
         self.combo_rec(
-        tups,
-        added_to_left,
-        rhs.clone(),
-        ind,
-        current_tuple + 1,
-        tuple_size,
+            tups,
+            added_to_left,
+            rhs.clone(),
+            ind,
+            current_tuple + 1,
+            tuple_size,
         );
 
         // A tuple has been met, so start with the original values and increment the index;
@@ -193,11 +213,9 @@ impl<FT: FlElement> TupleCtr<FT> {
             added_to_right,
             ind,
             current_tuple,
-            tuple_size
+            tuple_size,
         );
     }
-
-
 
     pub fn ctr_iter(&self) -> impl Iterator<Item = &Ctr<FT>> {
         self.array.iter()
@@ -256,21 +274,21 @@ mod ctr_tests {
         let eight = <Flag<u16>>::from(8);
         let nine = <Flag<u16>>::from(9);
 
-        let array:[Flag<u16>; 9] = [one, two, three, four, five, six, seven, eight, nine];
+        let array: [Flag<u16>; 9] = [one, two, three, four, five, six, seven, eight, nine];
         let mut the_counter = TupleCtr::new();
         for (i, x) in array.iter().enumerate() {
-            the_counter.insert(Flag::from(i+1), *x);
+            the_counter.insert(Flag::from(i + 1), *x);
         }
         //dbg!(&the_counter);
-        let res = the_counter.combo( 1);
+        let res = the_counter.combo(1);
 
         assert_eq!(res.len(), 9);
-        let res = the_counter.combo( 2);
+        let res = the_counter.combo(2);
         assert_eq!(res.len(), 36);
         let res = the_counter.combo(3);
         assert_eq!(res.len(), 84);
         for (i, x) in array.iter().enumerate() {
-            let c = if i + 2 > 9 {9} else {i + 2};
+            let c = if i + 2 > 9 { 9 } else { i + 2 };
             the_counter.insert(Flag::from(c), *x);
         }
         let res = the_counter.combo(2);
@@ -279,7 +297,7 @@ mod ctr_tests {
         assert_eq!(res.len(), 1);
         // reset value 2 to include only index 2.
         the_counter.array[1].indicies = Flag::from(2);
-        the_counter.array[1].ind_count= 1;
+        the_counter.array[1].ind_count = 1;
         // after below, index 1 and 2 have values for 1 and 2 and should be the only tuple.
         the_counter.insert(one, two);
         assert_eq!(the_counter.array[0].indicies, the_counter.array[1].indicies);
@@ -303,13 +321,13 @@ mod ctr_tests {
 
         let res = the_counter.combo(2);
         assert_eq!(res.len(), 0);
-        let res = the_counter.combo (3);
+        let res = the_counter.combo(3);
         assert_eq!(res.len(), 1);
 
         let mut the_counter = TupleCtr::new();
         for (i, x) in array.iter().enumerate() {
-            the_counter.insert(Flag::from(i+1), *x);
-            let c = if i + 2 > 9 {9} else {i + 2};
+            the_counter.insert(Flag::from(i + 1), *x);
+            let c = if i + 2 > 9 { 9 } else { i + 2 };
             the_counter.insert(Flag::from(c), *x);
         }
         let res = the_counter.combo(1);
@@ -333,6 +351,5 @@ mod ctr_tests {
         assert_eq!(res.len(), 0);
         let res = the_counter.combo(3);
         assert_eq!(res.len(), 1);
-
     }
 }

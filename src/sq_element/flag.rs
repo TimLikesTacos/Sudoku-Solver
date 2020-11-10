@@ -247,6 +247,15 @@ impl<F: FlagElement> Shl for Flag<F> {
     }
 }
 
+impl<F: FlagElement> Shr for Flag<F> {
+    type Output = Flag<F>;
+
+    fn shr(self, rhs: Self) -> Self::Output {
+        Flag {
+            flag: self.flag >> rhs.flag,
+        }
+    }
+}
 impl<F: FlagElement> Ord for Flag<F> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.flag.cmp(&other.flag)

@@ -3,7 +3,7 @@ use crate::sq_element::flag_limits::{FlagLimits, ZeroAndOne};
 use crate::sq_element::int::IntValue;
 use crate::sq_element::*;
 use std::fmt;
-use std::fmt::{Display, Formatter, Debug};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{AddAssign, BitAnd, BitOr, BitXor, Shl, Sub, SubAssign};
 
 pub trait OneZero {
