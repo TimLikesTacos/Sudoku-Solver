@@ -35,12 +35,15 @@ pub trait FlagElement:
 impl FlagElement for u16 {}
 impl FlagElement for u32 {}
 
+/// A Flag is an integer that is used as binary flags.  000001 is 1, 000010 is 2, 000011 is 3,
+/// and so on.  The FlagElement trait is a condensed summary of traits needed for implementation.
 #[derive(Copy, Clone, Default, Debug, Eq, PartialEq, PartialOrd)]
 pub struct Flag<F: FlagElement> {
     pub(crate) flag: F,
 }
 
 impl<V: FlagElement> Display for Flag<V> {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.flag)
     }
@@ -48,9 +51,11 @@ impl<V: FlagElement> Display for Flag<V> {
 
 impl<F: FlagElement> OneZero for Flag<F> {
     type Value = F;
+    #[inline]
     fn zero() -> Self {
         Self { flag: F::ZERO }
     }
+    #[inline]
     fn one() -> Self {
         Self { flag: F::ONE }
     }
@@ -140,6 +145,7 @@ impl<F: FlagElement> From<IntValue> for Flag<F> {
 impl<F: FlagElement> SqElement for Flag<F> {
     type Item = F;
 
+    #[inline]
     fn inc(&mut self) -> bool {
         if self.flag == F::VMAX {
             false
@@ -153,14 +159,17 @@ impl<F: FlagElement> SqElement for Flag<F> {
         }
     }
 
+    #[inline]
     fn reset(&mut self) {
         self.flag = F::ZERO;
     }
 
+    #[inline]
     fn get(&self) -> Self::Item {
         self.flag
     }
 
+    #[inline]
     fn set<V: SqElement>(&mut self, value: V)
     where
         Self: From<V>,
@@ -185,6 +194,7 @@ impl<F: FlagElement> AddAssign for Flag<F> {
 
 impl<F: FlagElement> Sub for Flag<F> {
     type Output = Self;
+    #[inline]
     fn sub(self, other: Self) -> Self {
         let res = self.flag & (other.flag ^ F::FMAX);
         Self { flag: res }
@@ -201,6 +211,7 @@ impl<F: FlagElement> SubAssign for Flag<F> {
 impl<F: FlagElement> BitAnd for Flag<F> {
     type Output = Self;
 
+    #[inline]
     fn bitand(self, rhs: Self) -> Flag<F> {
         Flag {
             flag: self.flag & rhs.flag,
@@ -211,6 +222,7 @@ impl<F: FlagElement> BitAnd for Flag<F> {
 impl<F: FlagElement> BitAnd for &Flag<F> {
     type Output = Flag<F>;
 
+    #[inline]
     fn bitand(self, rhs: Self) -> Flag<F> {
         Flag {
             flag: self.flag & rhs.flag,
@@ -220,6 +232,7 @@ impl<F: FlagElement> BitAnd for &Flag<F> {
 
 impl<F: FlagElement> BitOr for Flag<F> {
     type Output = Flag<F>;
+    #[inline]
     fn bitor(self, rhs: Self) -> Self::Output {
         Flag {
             flag: self.flag | rhs.flag,
@@ -230,6 +243,7 @@ impl<F: FlagElement> BitOr for Flag<F> {
 impl<F: FlagElement> BitXor for Flag<F> {
     type Output = Flag<F>;
 
+    #[inline]
     fn bitxor(self, rhs: Self) -> Self::Output {
         Flag {
             flag: self.flag ^ rhs.flag,
@@ -240,6 +254,7 @@ impl<F: FlagElement> BitXor for Flag<F> {
 impl<F: FlagElement> Shl for Flag<F> {
     type Output = Flag<F>;
 
+    #[inline]
     fn shl(self, rhs: Self) -> Self::Output {
         Flag {
             flag: self.flag << rhs.flag,
@@ -250,6 +265,7 @@ impl<F: FlagElement> Shl for Flag<F> {
 impl<F: FlagElement> Shr for Flag<F> {
     type Output = Flag<F>;
 
+    #[inline]
     fn shr(self, rhs: Self) -> Self::Output {
         Flag {
             flag: self.flag >> rhs.flag,
@@ -267,6 +283,7 @@ impl<F: FlagElement> Ord for Flag<F> {
 // }
 impl<F: FlagElement> FlElement for Flag<F> {
     type FlagItem = F;
+    #[inline]
     fn count_ones(flags: &Self) -> u8 {
         let mut f = flags.flag;
         let mut count = 0;
@@ -289,6 +306,7 @@ impl<F: FlagElement> FlElement for Flag<F> {
             .fold(F::ZERO, |acc, x| acc | Self::from(*x).flag);
     }
 
+    #[inline]
     fn is_flagged(&self, other: &Self) -> bool {
         if self.flag & other.flag > F::ZERO {
             true
@@ -296,7 +314,7 @@ impl<F: FlagElement> FlElement for Flag<F> {
             false
         }
     }
-
+    #[inline]
     fn max() -> Self {
         Self { flag: F::FMAX }
     }

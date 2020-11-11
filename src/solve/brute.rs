@@ -15,8 +15,7 @@ impl<S: Square> BruteForce<S> for Puzzle<S>
 where
     Grid<S>: NewGrid,
 {
-    /// Solves the Sudoku puzzle.  Returns a vector of 1-D vectors.  Each 1-D vector represents a
-    /// solution of the sudoku puzzle.  If no solution exists, the vector will be empty.
+    /// Solves the Sudoku puzzle.  Returns a SolutionReport reflecting the number of solutions.
     fn brute_force_solve(&self) -> SolutionReport<S> {
         let move_right = |p: &Grid<S>, c: usize| {
             let mut cur = c;
@@ -56,7 +55,7 @@ where
             // check valid
 
             if puz.valid_entry(position) {
-                // if valid, check solved
+                // if valid, check solved. Solved if the position is valid and in the last square.
                 if position == NUM_CELLS - 1 {
                     //dbg!(usize::from(position), back_marker);
                     // Copy cell numbers into a new vector to be added to the solutions.

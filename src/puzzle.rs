@@ -5,6 +5,11 @@ use crate::sq_element::flag::Flag;
 use crate::sq_element::*;
 use crate::square::*;
 
+/// Solutions enum stores the solution to the puzzle.  It has three variants:
+/// `None` which means there are no solutions
+/// `One` which means that there is one solution, and the enum contains the solution `Grid`
+/// `Multi` which means that there are multiple solutions.  This variant contains a `Vec<Grid>` of
+/// the possible solutions.
 #[derive(Debug, Clone)]
 pub enum Solutions<G: Square> {
     None,
@@ -12,6 +17,9 @@ pub enum Solutions<G: Square> {
     Multi(Vec<Grid<G>>),
 }
 
+/// Puzzle is the main orginizational struct.  It contains the `board` which is of type `Grid`.
+/// It also contains the `solution` which is of the struct `SolutionReport` which contains all the
+/// information about the solution(s).
 pub struct Puzzle<S: Square>
 where
     Grid<S>: NewGrid,
@@ -20,11 +28,22 @@ where
     pub(crate) solution: SolutionReport<S>,
 }
 
+/// Puzzle type aliases
+/// `SimpleSudoku` is your basic sudoku puzzle that has normal integer types as values
+/// and contains no `flags` for potential values.  Only solvable by brute force.
+/// `RegSuoku` is a normal 9x9 puzzle that uses integer values for values, but also contains
+/// `Flag`s for identifying potential values.  Solvable by all techniques, and brute force is faster
+/// due to the algorithm using the potential values as the next increment.
+/// `RegFlagSudoku` is similar to `RedSudoku`, but uses flag values for values instead of normal integers.
+/// This can possible lead to different calculation times and conversions back and forth in solving
+/// algorithms can be different.
+/// `FourByFour` is not yet implemented, but is similar to `RegFlagSudoku` for 16 x 16 puzzles.
 type SimpleSudoku = Puzzle<SimpleSquare<IntValue>>;
 type RegSudoku = Puzzle<FlagSquare<IntValue, Flag<u16>>>;
 type RegFlagSudoku = Puzzle<FlagSquare<Flag<u16>, Flag<u16>>>;
 //type FourByFour    = Puzzle<FlagSquare<FlagType<u32>, FlagType<u32>>>;
 
+/// The common trait for all `Puzzle` types to use.
 pub trait PuzzleTrait<S: Square>: BruteForce<S> {
     fn new(input_vec: Vec<u8>) -> Self;
     fn is_solved(&self) -> bool;
@@ -43,6 +62,9 @@ where
             board: g,
             solution: SolutionReport::default(),
         };
+        /**
+        todo: change from brute force to difficulty calc
+        **/
         let sol = p.brute_force_solve();
         p.solution = sol;
         p

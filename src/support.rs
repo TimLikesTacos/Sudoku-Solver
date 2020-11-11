@@ -1,18 +1,24 @@
 use crate::grid::constants::*;
 
-// convert 2-D coordinate to 1-D
+/// convert 2-D coordinate to 1-D
 pub fn get_cell(row: usize, col: usize) -> usize {
     row * MAX_NUM + col
 }
 
-// covert 1-D coordinate to 2-D
+/// covert 1-D coordinate to row number
+#[inline]
 pub fn index_to_row(index: usize) -> usize {
     index / MAX_NUM
 }
+
+/// covert 1-D coordinate to col number
+#[inline]
 pub fn index_to_col(index: usize) -> usize {
     index % MAX_NUM
 }
 
+/// covert 1-D coordinate to box number
+#[inline]
 pub fn index_to_box(index: usize) -> usize {
     let (r, c) = (index_to_row(index), index_to_col(index));
     (r / BOX_DIMEN) * BOX_DIMEN + (c / BOX_DIMEN)
@@ -20,6 +26,7 @@ pub fn index_to_box(index: usize) -> usize {
 
 /// Returns the index of the first (upper-left) cell in the box, which
 /// is the first element in the iterator
+#[inline]
 pub fn start_of_box(box_num: usize) -> usize {
     let row = (box_num / BOX_DIMEN) * BOX_DIMEN;
     let col = (box_num % BOX_DIMEN) * BOX_DIMEN;
@@ -28,16 +35,23 @@ pub fn start_of_box(box_num: usize) -> usize {
 
 /// Given the box number and the nth cell in that box, returns index in puzzle of the cell.
 /// Useful for getting coordinates from iterators
+#[inline]
 pub fn index_from_box(box_num: usize, index: usize) -> usize {
     let start = start_of_box(box_num);
     let row_cont = (index / BOX_DIMEN) * MAX_NUM;
     start + row_cont + (index % BOX_DIMEN)
 }
 
+/// Given the row number and the nth cell in that row, returns index in puzzle of the cell.
+/// Useful for getting coordinates from iterators
+#[inline]
 pub fn index_from_row(row: usize, index: usize) -> usize {
     row * MAX_NUM + index
 }
 
+/// Given the col number and the nth cell in that col, returns index in puzzle of the cell.
+/// Useful for getting coordinates from iterators
+#[inline]
 pub fn index_from_col(col: usize, index: usize) -> usize {
     index * MAX_NUM + col
 }

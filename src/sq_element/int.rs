@@ -7,12 +7,15 @@ use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Add;
 
+/// IntValue is a wrapper around a u8 integer and acts as a value in a sudoku puzzle
+/// that behaves just like an integer.  This type is used as an alternative to the Flag struct.
 #[derive(Copy, Clone, Default, Debug, PartialEq, PartialOrd)]
 pub struct IntValue {
     pub(crate) value: u8,
 }
 
 impl Display for IntValue {
+    #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.value)
     }
@@ -20,9 +23,11 @@ impl Display for IntValue {
 
 impl OneZero for IntValue {
     type Value = u8;
+    #[inline]
     fn zero() -> Self {
         Self { value: u8::ZERO }
     }
+    #[inline]
     fn one() -> Self {
         Self { value: u8::ONE }
     }
@@ -32,6 +37,7 @@ impl OneZero for IntValue {
 impl SqElement for IntValue {
     type Item = u8;
 
+    #[inline]
     fn inc(&mut self) -> bool {
         if self.value == u8::VMAX {
             false
@@ -41,10 +47,12 @@ impl SqElement for IntValue {
             true
         }
     }
+    #[inline]
     fn reset(&mut self) {
         self.value = u8::ZERO
     }
 
+    #[inline]
     fn get(&self) -> Self::Item {
         self.value
     }

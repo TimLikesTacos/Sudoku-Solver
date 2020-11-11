@@ -8,6 +8,10 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::{Index, IndexMut};
 
+/// A `Grid` contains `Squares` and all functions required to maneuver through the `Grid`.
+/// Data is stored in a 1-D vector, which simulates a 2-D square grid, normally 9 x 9.
+/// The 1-D vector is row dominate (squares in the same row are next to each other in the vector (and
+/// therefore memory)).
 #[derive(Clone, Debug)]
 pub struct Grid<S: Square> {
     pub(crate) grid: Vec<S>,
@@ -143,32 +147,7 @@ where
 }
 
 impl<S: Square + Clone> Grid<S> {
-    // pub fn new(input_vec: Vec<u8>) -> Grid<S>
-    // where
-    //     S: Square + FlagUpdate,
-    // {
-    //     let mut g = Grid {
-    //         grid: input_vec
-    //             .iter()
-    //             .map(|x| {
-    //                 if *x == 0 {
-    //                     S::new(*x, false)
-    //                 } else {
-    //                     S::new(*x, true)
-    //                 }
-    //             })
-    //             .collect(),
-    //     };
-    //     if S::has_flags() {
-    //         for i in 0..NUM_CELLS {
-    //             let it = g.single_iterator(i);
-    //             let mut copy = g[i].clone();
-    //             copy.set_initial(it);
-    //             g[i] = copy;
-    //         }
-    //     }
-    //     g
-    // }
+
     /// Iterate over the entire 1-D row dominate grid vector
     pub fn grid_iter(&self) -> impl Iterator<Item = &S> {
         self.grid.iter()
@@ -237,6 +216,8 @@ impl<V: SqElement + From<F>, F: FlElement + From<V>> Grid<FlagSquare<V, F>>
 where
     FlagSquare<V, F>: Square<Type = V> + FlagUpdate<FlagElement = F>,
 {
+    /// Sets the square at `index` to the `value`, then updates affected squares potential values.
+    /// Affected squares are those in the square's row, column, and box.
     pub(crate) fn set_value_update_flags<IN: SqElement>(&mut self, index: usize, value: IN)
     where
         V: From<IN>,
@@ -254,11 +235,11 @@ where
         self.box_iter_mut(index)
             .map(|s| s.remove_flag(f_remove))
             .all(|_| true);
-        // self.row_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
-        // self.col_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
-        // self.box_iter_mut(index).map(|s|s.flags -= f_remove).all(|_|true);
+
     }
 
+    /// This function will remove the value from the square, and add it (if applicable) to the
+    /// affected squares in it's row, column, and box.
     /// O(9 * MAX_NUM^2). Intensive calculation, avoid when possible
     fn undo_set_and_update(&mut self, index: usize) {
         let value = self[index].value;
