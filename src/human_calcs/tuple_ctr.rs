@@ -347,7 +347,6 @@ mod ctr_tests {
         let res = the_counter.combo(1);
         assert_eq!(res.len(), 0);
         let res = the_counter.combo(2);
-        dbg!(&the_counter, &res);
         assert_eq!(res.len(), 0);
         let res = the_counter.combo(3);
         assert_eq!(res.len(), 1);

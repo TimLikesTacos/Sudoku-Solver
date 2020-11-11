@@ -453,6 +453,7 @@ mod human_method_tests {
     use crate::solve::brute::BruteForce;
     use crate::solve::solution_report::Solution;
     use crate::sq_element::{Flag, IntValue};
+    use crate::sq_element::sq_element::OneZero;
 
     fn get_example() -> Vec<Vec<u8>> {
         vec![
@@ -617,5 +618,154 @@ mod human_method_tests {
         } else {
             assert!(false);
         }
+    }
+
+    #[test]
+    fn hidden_tuples_test() {
+        let mut puz: Puzzle <FlagSquare<Flag<u16>, Flag<u16>>> = Puzzle::new(
+            vec![
+                vec![7, 0, 0, 8, 4, 9, 0, 3, 0],
+                vec![9, 2, 8, 1, 3, 5, 0, 0, 6],
+                vec![4, 0, 0, 2, 6, 7, 0, 8, 9],
+                vec![6, 4, 2, 7, 8, 3, 9, 5, 1],
+                vec![3, 9, 7, 4, 5, 1, 6, 2, 8],
+                vec![8, 1, 5, 6, 9, 2, 3, 0, 0],
+                vec![2, 0, 4, 5, 1, 6, 0, 9, 3],
+                vec![1, 0, 0, 0, 0, 8, 0, 6, 0],
+                vec![5, 0, 0, 0, 0, 4, 0, 1, 0],
+            ]
+            .as_input()
+            .unwrap());
+
+        let i1 = index_from_row(7, 2);
+        let i2 = index_from_row(7, 3);
+        let i3 = index_from_row(1, 6);
+        let i4 = index_from_row(1, 7);
+
+        let f1 = puz.board[i1].flags;
+        let f2 = puz.board[i2].flags;
+        let f3 = puz.board[i3].flags;
+        let f4 = puz.board[i4].flags;
+
+        // check that not identical
+        // assert_ne!(f1, f2);
+        // assert_eq!(f3, f4);
+
+        let res = puz.board.hidden_tuple();
+
+        let f1t = puz.board[i1].flags;
+        let f2t = puz.board[i2].flags;
+        let f3t = puz.board[i3].flags;
+        let f4t = puz.board[i4].flags;
+
+        // Identical as they are tuples and extra should have been removed
+        assert_eq!(f1t, f2t);
+        assert_eq!(f3t, f4t);
+        dbg!(&res);
+
+        let zero = Flag::zero();
+        // Check nothing has been added
+        assert_eq!(f1t - f1, zero);
+        assert_eq!(f2t - f2, zero);
+        assert_eq!(f3t - f3, zero);
+        assert_eq!(f4t - f4, zero);
+
+
+        assert!(res.contains(&SolveTech::HiddenTuples((2, i1))));
+        assert!(res.contains(&SolveTech::HiddenTuples((2, i2))));
+        assert!(res.contains(&SolveTech::HiddenTuples((2, i3))));
+        assert!(res.contains(&SolveTech::HiddenTuples((2, i4))));
+
+        // //ensure puzzle is solvable after pencil mark eliminations. This puzzle is solvable with
+        // // single candidate which uses the pencil marks
+        // let count = puz.single_candidate(true);
+        // assert_eq!(count.len(), 25);
+        //
+        // // Quick validity check over all filled in blocks.
+        // let res = puz.brute_force_solve();
+        // assert_eq!(res.len(), 1);
+        //
+        // /*
+        // Naked triple check
+        //  */
+        // let example = vec![
+        //     vec![0, 0, 0, 2, 9, 4, 3, 8, 0],
+        //     vec![0, 0, 0, 1, 7, 8, 6, 4, 0],
+        //     vec![4, 8, 0, 3, 5, 6, 1, 0, 0],
+        //     vec![0, 0, 4, 8, 3, 7, 5, 0, 1],
+        //     vec![0, 0, 0, 4, 1, 5, 7, 0, 0],
+        //     vec![5, 0, 0, 6, 2, 9, 8, 3, 4],
+        //     vec![9, 5, 3, 7, 8, 2, 4, 1, 6],
+        //     vec![1, 2, 6, 5, 4, 3, 9, 7, 8],
+        //     vec![0, 4, 0, 9, 6, 1, 2, 5, 3],
+        // ];
+        //
+        // let mut puz = Puzzle::new();
+        // puz.set_initial(example.as_input().unwrap());
+        //
+        // let res = puz.naked_tuple();
+        // assert!(res.contains(&get_cell(1, 1)));
+        // assert!(res.contains(&get_cell(3, 1)));
+        // assert!(res.contains(&get_cell(4, 1)));
+        // assert!(!puz.cells[1].penciled.contains(&6));
+        //
+        // assert!(res.contains(&get_cell(3, 7)));
+        // assert!(res.contains(&get_cell(4, 7)));
+        // assert!(res.contains(&get_cell(4, 8)));
+        //
+        //
+        // // Quick validity check over all filled in blocks.
+        // let res = puz.brute_force_solve();
+        // assert_eq!(res.len(), 1);
+        //
+        // let example = vec![
+        //     vec![3, 9, 0, 0, 0, 0, 7, 0, 0],
+        //     vec![0, 0, 0, 0, 0, 0, 6, 5, 0],
+        //     vec![5, 0, 7, 0, 0, 0, 3, 4, 9],
+        //     vec![0, 4, 9, 3, 8, 0, 5, 0, 6],
+        //     vec![6, 0, 1, 0, 5, 4, 9, 8, 3],
+        //     vec![8, 5, 3, 0, 0, 0, 4, 0, 0],
+        //     vec![9, 0, 0, 8, 0, 0, 1, 3, 4],
+        //     vec![0, 0, 2, 9, 4, 0, 8, 6, 5],
+        //     vec![4, 0, 0, 0, 0, 0, 2, 9, 7],
+        // ];
+        //
+        // let mut puz = Puzzle::new();
+        // puz.set_initial(example.as_input().unwrap());
+        // // There are in fact no single candidates.  Using pairs will free some up and be able to
+        // // be solved later.
+        // let uns = puz.single_candidate(true);
+        // assert_eq!(uns.len(), 0);
+        //
+        // let res = puz.naked_tuple();
+        //
+        // assert!(res.contains(&get_cell(0, 4)));
+        // assert!(res.contains(&get_cell(2, 3)));
+        // assert!(res.contains(&get_cell(2, 4)));
+        //
+        // assert!(puz.cells[get_cell(2, 3)].penciled.contains(&1));
+        // assert!(!puz.cells[get_cell(1, 4)].penciled.contains(&1));
+        //
+        // // Puzzle is solvable with single_candidate now that some pencil marks were eliminated by tuples.
+        // let count = puz.single_candidate(true);
+        // assert!(count.len() == 39); // 39 empty cells
+        //
+        // // Quick validity check over all filled in blocks.
+        // let res = puz.brute_force_solve();
+        // assert_eq!(res.len(), 1);
+        //
+        // // The following test for hidden triples
+        // let str = "5..62..37..489........5....93........2....6.57.......3.....9............68.57...2";
+        // let mut puz = Puzzle::new();
+        // puz.set_initial(str.as_input().unwrap());
+        // let res = puz.naked_tuple();
+        // let threefive = get_cell (3,5);
+        // assert!(res.contains(&threefive));
+        // assert!(puz.cells[threefive].penciled().contains(&5));
+        // assert!(puz.cells[threefive].penciled().contains(&2));
+        // assert!(puz.cells[threefive].penciled().contains(&6));
+        // assert!(!puz.cells[threefive].penciled().contains(&1));
+
+
     }
 }
