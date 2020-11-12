@@ -304,14 +304,11 @@ where
             iter: fn(&'a Grid<FlagSquare<VT, FT>>, usize) -> I,
             index_from: fn(usize, usize) -> usize,
             step: usize,
-        ) -> Vec<(usize, usize, FT)>
+        ) -> Vec<Ctr<FT>>
         where
             FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
-            /* This vector is used to track the tuple size and the index associated with it */
-            let mut tups: Vec<SolveTech> = Vec::new();
-            //const MAX_TUPLE: usize = MAX_NUM / 2;
-            // let mut count: [u8; MAX_NUM] = [0; MAX_NUM];
+
             // Collect the counts for occurances of each flagged value
             let mut v_indicies: Vec<(usize, usize, FT)> = Vec::new();
             let mut counter: TupleCtr<FT> = TupleCtr::new();
@@ -319,42 +316,55 @@ where
                 counter.insert(FT::from(i + 1), s.flags);
             }
 
-            //let mut results: Vec<Ctr<FT>> = Vec::new();
+            let mut results: Vec<Ctr<FT>> = Vec::new();
             for uple in 1..(MAX_NUM / 2) {
-                let results = counter.combo(u8::try_from(uple).unwrap());
-                // Unravel results:
-                for r in results {
-                    assert_eq!(FT::count_ones(&r.flag), FT::count_ones(&r.indicies));
-                    let mut ind = r.indicies;
-                    let mut count = 0;
-                    let one = FT::one();
-                    while ind > FT::zero() {
-                        if ind & one == one {
-                            v_indicies.push((uple, count, r.flag));
-                        }
-                        ind = ind >> one;
-                        count += 1;
-                    }
-                }
+                 results.append(&mut counter.combo(u8::try_from(uple).unwrap()));
+                // // Unravel results:
+                // for r in results {
+                //     assert_eq!(FT::count_ones(&r.flag), FT::count_ones(&r.indicies));
+                //     let mut ind = r.indicies;
+                //     let mut count = 0;
+                //     let one = FT::one();
+                //     while ind > FT::zero() {
+                //         if ind & one == one {
+                //             v_indicies.push((uple, count, r.flag));
+                //         }
+                //         ind = ind >> one;
+                //         count += 1;
+                //     }
+                // }
             }
-            v_indicies
+            results
         }
 
-        fn update_grid<'a, 'b, VT: 'b + SqElement + From<FT>, FT: 'b + FlElement + From<VT> + Ord>(
+        fn update_grid<'a, 'b, VT: 'b + SqElement + From<FT>, FT: 'b + FlElement + From<VT> + Ord, I: Iterator<Item = &'b mut FlagSquare<VT, FT>>,>(
             grid: &'a mut Grid<FlagSquare<VT, FT>>,
-            indicies: &Vec<(usize, usize, FT)>,
+            indicies: &Vec<Ctr<FT>>,
+            iter: fn(&'a mut Grid<FlagSquare<VT, FT>>, usize) -> I,
             index_from: fn(usize, usize) -> usize,
             step: usize,
         ) -> Vec<SolveTech>
         where
-            FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
+        FlagSquare<VT, FT>: FlagUpdate<FlagElement = FT>,
         {
+            let zero = FT::zero();
             let mut tups: Vec<SolveTech> = Vec::new();
-            // replace flags at the indicies with the tuple
-            for (tup, i, flag) in indicies {
-                let index = index_from(step, *i);
-                grid.grid[index].flags = *flag;
-                tups.push(SolveTech::HiddenTuples((*tup, index)));
+            let mut indicies = indicies;
+            for (i, s) in iter(grid, index_from(step, 0)).enumerate().filter(|(_,s)|s.count > 0) {
+                let ind = FT::from(i+1);
+                for c in indicies {
+                    /* If a square's index is in the indicies value for a Ctr, then it means
+                    * that it belongs in the tuple.  All other potential values for that square
+                    * can be eliminated.  If the index is NOT in the Ctr, then all values of the tuple
+                    * can be eliminated.
+                     */
+                    if ind & c.indicies > zero {
+                        s.flags = s.flags & c.flag.clone();
+                        tups.push(SolveTech::HiddenTuples((c.ind_count as usize, index_from(step, i))));
+                    } else {
+                        s.flags = s.flags - c.flag;
+                    }
+                }
             }
             tups
         }
@@ -364,18 +374,21 @@ where
             ret.append(&mut update_grid(
                 self,
                 &get_tuples(self, Self::row_iter, index_from_row, i),
+                Self::row_iter_mut,
                 index_from_row,
                 i,
             ));
             ret.append(&mut update_grid(
                 self,
                 &get_tuples(self, Self::col_iter, index_from_col, i),
+                Self::col_iter_mut,
                 index_from_col,
                 i,
             ));
             ret.append(&mut update_grid(
                 self,
                 &get_tuples(self, Self::box_iter, index_from_box, i),
+                Self::box_iter_mut,
                 index_from_box,
                 i,
             ));
@@ -647,6 +660,8 @@ mod human_method_tests {
         let f3 = puz.board[i3].flags;
         let f4 = puz.board[i4].flags;
 
+        assert_eq!(f1, <Flag<u16>>::from(3).merge(&[<Flag<u16>>::from(9)]));
+        assert_eq!(f2, <Flag<u16>>::from(3).merge(&[<Flag<u16>>::from(9)]));
         // check that not identical
         // assert_ne!(f1, f2);
         // assert_eq!(f3, f4);
@@ -659,9 +674,9 @@ mod human_method_tests {
         let f4t = puz.board[i4].flags;
 
         // Identical as they are tuples and extra should have been removed
+        dbg!(&res);
         assert_eq!(f1t, f2t);
         assert_eq!(f3t, f4t);
-        dbg!(&res);
 
         let zero = Flag::zero();
         // Check nothing has been added
